@@ -33,13 +33,13 @@ export class CodeforcesService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private generateApiSig(methodName: string, params: Record<string, string | number>): string {
+  private generateApiSig(methodName: string, params: Record<string, string | number>, time: number): string {
     if (!this.apiKey || !this.apiSecret) {
       return '';
     }
 
-    const rand = Math.random().toString(36).substring(2, 8);
-    const time = Math.floor(Date.now() / 1000);
+    // 6-character random prefix as required by Codeforces API
+    const rand = Math.floor(100000 + Math.random() * 900000).toString();
 
     const fullParams: Record<string, string | number> = {
       ...params,
@@ -91,10 +91,7 @@ export class CodeforcesService {
             queryParams.append('apiKey', this.apiKey);
             queryParams.append('time', String(time));
 
-            const sig = this.generateApiSig(methodName, {
-              ...params,
-              time,
-            });
+            const sig = this.generateApiSig(methodName, params, time);
             queryParams.append('apiSig', sig);
           }
 

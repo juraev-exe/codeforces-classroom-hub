@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "npm run dev:web",
     "dev:api": "npm run dev --workspace=@cf-hub/api",
     "dev:web": "npm run dev --workspace=@cf-hub/web",
     "dev:bot": "npm run dev --workspace=@cf-hub/bot",
