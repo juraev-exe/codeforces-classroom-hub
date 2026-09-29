@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cf_classroom_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-codeforces_classroom}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cf_classroom_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: cf_classroom_api
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/codeforces_classroom?schema=public
+      - REDIS_URL=redis://redis:6379
+      - CODEFORCES_API_KEY=${CODEFORCES_API_KEY}
+      - CODEFORCES_API_SECRET=${CODEFORCES_API_SECRET}
+      - TEACHER_CF_HANDLE=${TEACHER_CF_HANDLE:-tourist}
+      - JWT_SECRET=${JWT_SECRET:-default_secret}
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    container_name: cf_classroom_web
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  bot:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.bot
+    container_name: cf_classroom_bot
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_ADMIN_IDS=${TELEGRAM_ADMIN_IDS}
+      - API_URL=http://api:4000
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  redis_data:

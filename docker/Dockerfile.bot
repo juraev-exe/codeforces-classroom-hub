@@ -1,0 +1,14 @@
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY package*.json ./
+COPY packages/ ./packages/
+COPY apps/bot/ ./apps/bot/
+
+RUN npm install
+RUN npm run build --workspace=@cf-hub/bot
+
+CMD ["npm", "run", "start", "--workspace=@cf-hub/bot"]

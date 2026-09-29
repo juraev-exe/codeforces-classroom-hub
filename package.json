@@ -1,0 +1,31 @@
+{
+  "name": "codeforces-classroom-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Codeforces Classroom Hub - Manage and analyze Codeforces profiles, student activity, class leaderboards and Telegram bot",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=@cf-hub/api",
+    "dev:web": "npm run dev --workspace=@cf-hub/web",
+    "dev:bot": "npm run dev --workspace=@cf-hub/bot",
+    "build": "npm run build --workspaces --if-present",
+    "db:generate": "npm run generate --workspace=@cf-hub/database",
+    "db:push": "npm run db:push --workspace=@cf-hub/database",
+    "db:seed": "npm run seed --workspace=@cf-hub/database",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "keywords": [
+    "codeforces",
+    "classroom",
+    "education",
+    "competitive-programming",
+    "telegram-bot",
+    "nextjs",
+    "fastify"
+  ],
+  "author": "",
+  "license": "MIT"
+}
