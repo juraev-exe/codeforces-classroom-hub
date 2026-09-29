@@ -1,6 +1,6 @@
 'use client';
 
-import { Bot, Shield, Send, Terminal, CheckCircle2, AlertTriangle, Key } from 'lucide-react';
+import { Bot, Shield, Send, Terminal, CheckCircle2, AlertTriangle, Key, Zap, Bell } from 'lucide-react';
 
 export default function TelegramBotPage() {
   const commands = [
@@ -17,63 +17,75 @@ export default function TelegramBotPage() {
   ];
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-          <Bot className="w-6 h-6 text-blue-500" />
-          Telegram Notification & Tracker Bot
-        </h1>
-        <p className="text-sm text-zinc-400 mt-1">
-          Connected to the classroom backend for automated contest reminders, leaderboard queries, and student reports.
-        </p>
+    <div className="space-y-7 max-w-4xl mx-auto">
+      {/* Top Header Card */}
+      <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/[0.08] relative overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              Integrations & Bots
+            </span>
+            <span className="text-xs text-zinc-400">
+              Personal Push Notification Channel
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2.5">
+            <Bot className="w-7 h-7 text-blue-400" />
+            Telegram Notification & Tracker Bot
+          </h1>
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl">
+            Connected to your Codeforces Classroom Hub backend for instant contest reminders, leaderboard queries, and automated student performance digests.
+          </p>
+        </div>
       </div>
 
       {/* Setup Guide */}
-      <div className="p-6 rounded-2xl bg-card border border-border space-y-4">
-        <h2 className="text-base font-semibold text-white flex items-center gap-2">
+      <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/[0.08] space-y-5 shadow-2xl">
+        <h2 className="text-base font-bold text-white flex items-center gap-2 tracking-tight">
           <Key className="w-4 h-4 text-amber-400" />
-          Setup & Configuration
+          Setup & Bot Pairing
         </h2>
 
-        <div className="space-y-3 text-sm text-zinc-300">
-          <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-border-subtle flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+        <div className="space-y-3.5 text-xs text-zinc-300">
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-start gap-3.5">
+            <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
               1
             </span>
             <div>
-              <p className="font-medium text-white">Create your Bot on Telegram</p>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                Message <span className="text-blue-400 font-mono">@BotFather</span> on Telegram and send{' '}
-                <span className="font-mono bg-zinc-800 px-1 rounded">/newbot</span> to receive your Bot Token.
+              <p className="font-semibold text-white text-sm">Create your Bot on Telegram</p>
+              <p className="text-zinc-400 mt-1 leading-relaxed">
+                Open Telegram, message <span className="text-blue-400 font-mono font-medium">@BotFather</span>, and send{' '}
+                <span className="font-mono bg-white/[0.08] px-1.5 py-0.5 rounded text-zinc-200">/newbot</span> to generate your secure Bot API Token.
               </p>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-border-subtle flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-start gap-3.5">
+            <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
               2
             </span>
-            <div>
-              <p className="font-medium text-white">Configure your environment (.env)</p>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                Paste the token into your root <span className="font-mono text-zinc-300">.env</span> file:
+            <div className="w-full">
+              <p className="font-semibold text-white text-sm">Store Token in Environment</p>
+              <p className="text-zinc-400 mt-1">
+                Add your bot token and your Telegram User ID into your server environment configuration:
               </p>
-              <pre className="mt-2 p-2.5 rounded-lg bg-black text-xs font-mono text-emerald-400 border border-zinc-800 overflow-x-auto">
+              <div className="mt-2.5 p-3 rounded-xl bg-black/60 text-xs font-mono text-emerald-400 border border-white/10 overflow-x-auto">
                 TELEGRAM_BOT_TOKEN="your_bot_token_here"<br />
-                TELEGRAM_ADMIN_IDS="123456789"
-              </pre>
+                TELEGRAM_ADMIN_IDS="your_telegram_numeric_id"
+              </div>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-border-subtle flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-start gap-3.5">
+            <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
               3
             </span>
             <div>
-              <p className="font-medium text-white">Whitelist Telegram User IDs (Security)</p>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                Only Telegram User IDs specified in <span className="font-mono text-zinc-300">TELEGRAM_ADMIN_IDS</span>{' '}
-                can query sensitive class and student data. When an unauthorized user sends a command, the bot prints their User ID for easy whitelisting.
+              <p className="font-semibold text-white text-sm">Security & Access Whitelist</p>
+              <p className="text-zinc-400 mt-1 leading-relaxed">
+                Only Telegram User IDs specified in <span className="font-mono text-zinc-300 bg-white/[0.05] px-1 py-0.5 rounded">TELEGRAM_ADMIN_IDS</span> can trigger queries. If an unrecognized user pings your bot, it securely outputs their Telegram ID to simplify whitelisting.
               </p>
             </div>
           </div>
@@ -81,16 +93,16 @@ export default function TelegramBotPage() {
       </div>
 
       {/* Available Commands */}
-      <div className="p-6 rounded-2xl bg-card border border-border space-y-4">
-        <h2 className="text-base font-semibold text-white flex items-center gap-2">
+      <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/[0.08] space-y-4 shadow-2xl">
+        <h2 className="text-base font-bold text-white flex items-center gap-2 tracking-tight">
           <Terminal className="w-4 h-4 text-emerald-400" />
-          Supported Bot Commands
+          Supported Telegram Commands
         </h2>
 
-        <div className="divide-y divide-border-subtle">
+        <div className="divide-y divide-white/[0.04]">
           {commands.map((cmd) => (
             <div key={cmd.command} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span className="font-mono text-sm font-semibold text-blue-400 bg-blue-950/40 px-2.5 py-1 rounded-md border border-blue-900/40 w-fit">
+              <span className="font-mono text-xs font-semibold text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-lg border border-blue-500/20 w-fit">
                 {cmd.command}
               </span>
               <span className="text-xs text-zinc-400 sm:text-right">{cmd.desc}</span>
@@ -100,30 +112,30 @@ export default function TelegramBotPage() {
       </div>
 
       {/* Automated Notifications */}
-      <div className="p-6 rounded-2xl bg-card border border-border space-y-4">
-        <h2 className="text-base font-semibold text-white flex items-center gap-2">
-          <Shield className="w-4 h-4 text-purple-400" />
+      <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/[0.08] space-y-4 shadow-2xl">
+        <h2 className="text-base font-bold text-white flex items-center gap-2 tracking-tight">
+          <Bell className="w-4 h-4 text-purple-400" />
           Automated Cron Notifications
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-zinc-300">
-          <div className="p-4 rounded-xl bg-zinc-900/60 border border-border-subtle space-y-2">
-            <h3 className="font-semibold text-white flex items-center gap-1.5">
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-2">
+            <h3 className="font-semibold text-white flex items-center gap-1.5 text-sm">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
               Contest Reminders (30m Alert)
             </h3>
-            <p className="text-zinc-400">
-              The bot automatically checks upcoming rounds every 10 minutes and dispatches alert messages 30 minutes before contest start time.
+            <p className="text-zinc-400 leading-relaxed">
+              The backend background cron checks upcoming Codeforces rounds every 10 minutes and automatically sends a high-priority push reminder 30 minutes before round kickoff.
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-zinc-900/60 border border-border-subtle space-y-2">
-            <h3 className="font-semibold text-white flex items-center gap-1.5">
+          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-2">
+            <h3 className="font-semibold text-white flex items-center gap-1.5 text-sm">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              Contest Result Summaries
+              Post-Round Rating Digest
             </h3>
-            <p className="text-zinc-400">
-              After rounds conclude, rating changes and solved problem numbers for enrolled students are compiled into Telegram class reports.
+            <p className="text-zinc-400 leading-relaxed">
+              When contests conclude and Codeforces publishes official rating changes, the bot automatically sends a summary of how your students performed and their rating deltas.
             </p>
           </div>
         </div>

@@ -2,7 +2,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load .env from monorepo root or current directory
-dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config();
 
 import express, { Request, Response } from 'express';
@@ -14,6 +15,7 @@ import { contestsService } from './modules/contests/contests.service.js';
 import { syncService } from './modules/sync/sync.service.js';
 import { authService } from './modules/auth/auth.service.js';
 import { requireAuth, optionalAuth, AuthenticatedRequest } from './modules/auth/auth.middleware.js';
+import { codeforcesService } from './modules/codeforces/codeforces.service.js';
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -271,6 +273,23 @@ app.get('/api/contests/upcoming', async (req: Request, res: Response) => {
     res.json(upcoming);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch upcoming contests' });
+  }
+});
+
+// ==========================================
+// Codeforces Proxy Endpoints
+// ==========================================
+
+app.get('/api/codeforces/user/:handle', async (req: Request, res: Response) => {
+  try {
+    const handle = req.params.handle;
+    const users = await codeforcesService.getUserInfo([handle]);
+    if (!users || users.length === 0) {
+      return res.status(404).json({ error: `Codeforces user '${handle}' not found` });
+    }
+    res.json(users[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch Codeforces user' });
   }
 });
 

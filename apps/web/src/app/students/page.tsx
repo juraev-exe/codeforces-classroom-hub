@@ -14,6 +14,11 @@ import {
   XCircle,
   AlertCircle,
   GraduationCap,
+  Code2,
+  Trophy,
+  Activity,
+  Layers,
+  Link2,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { getRankColor, getRankBadgeClass } from '@/lib/cf-utils';
@@ -38,6 +43,16 @@ export default function StudentsPage() {
 
   // Row sync tracking
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  function copyJoinLink() {
+    if (typeof window !== 'undefined') {
+      const url = `${window.location.origin}/join`;
+      navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  }
 
   async function loadData() {
     try {
@@ -132,42 +147,74 @@ export default function StudentsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Users className="w-6 h-6 text-blue-500" />
-            Student Management
-          </h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            Track student Codeforces profiles, ratings, and contest progression.
-          </p>
-        </div>
+    <div className="space-y-7">
+      {/* Top Header Card */}
+      <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/[0.08] relative overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <button
-          onClick={() => {
-            setModalError(null);
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition shadow-lg shadow-blue-600/20"
-        >
-          <UserPlus className="w-4 h-4" />
-          Add Student Handle
-        </button>
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                Directory
+              </span>
+              <span className="text-xs text-zinc-400">
+                {students.length} students enrolled
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2.5">
+              <Users className="w-7 h-7 text-blue-400" />
+              Student Roster & Profiles
+            </h1>
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-xl">
+              Monitor individual Codeforces handles, live ratings, problem counts, and performance history.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={copyJoinLink}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 glass-pill hover:bg-white/[0.08] text-zinc-200 hover:text-white rounded-xl text-xs font-semibold transition-all border border-white/10 active:scale-[0.97]"
+              title="Copy student join link"
+            >
+              {copiedLink ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-400">Join Link Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Link2 className="w-4 h-4 text-blue-400" />
+                  <span>Copy Join Link</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                setModalError(null);
+                setIsModalOpen(true);
+              }}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-all shadow-lg shadow-blue-600/25 active:scale-[0.97] w-fit"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Add Student Handle</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-card border border-border">
+      <div className="glass-panel p-4 rounded-2xl border border-white/[0.08] grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Search */}
         <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-zinc-400" />
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" />
           <input
             type="text"
-            placeholder="Search name or @handle..."
+            placeholder="Search student name or @handle..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-zinc-900/80 border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-blue-500"
+            className="w-full bg-black/40 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-all"
           />
         </div>
 
@@ -176,11 +223,11 @@ export default function StudentsPage() {
           <select
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
-            className="w-full bg-zinc-900/80 border border-border rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-500"
+            className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-blue-500 transition-all"
           >
-            <option value="">All Classes</option>
+            <option value="" className="bg-zinc-900">All Classrooms</option>
             {classes.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.id} value={c.id} className="bg-zinc-900">
                 {c.name}
               </option>
             ))}
@@ -188,68 +235,91 @@ export default function StudentsPage() {
         </div>
 
         {/* Status Filter */}
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="w-full bg-zinc-900/80 border border-border rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-500"
+        <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/10 text-xs">
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`flex-1 py-1 text-center rounded-lg transition-all ${
+              statusFilter === 'all'
+                ? 'bg-white/10 text-white font-medium shadow-sm'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
-            <option value="all">All Statuses</option>
-            <option value="active">Active Only</option>
-            <option value="inactive">Inactive</option>
-          </select>
+            All ({students.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('active')}
+            className={`flex-1 py-1 text-center rounded-lg transition-all ${
+              statusFilter === 'active'
+                ? 'bg-emerald-500/20 text-emerald-300 font-medium border border-emerald-500/30'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            Active
+          </button>
+          <button
+            onClick={() => setStatusFilter('inactive')}
+            className={`flex-1 py-1 text-center rounded-lg transition-all ${
+              statusFilter === 'inactive'
+                ? 'bg-zinc-800 text-zinc-300 font-medium'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            Inactive
+          </button>
         </div>
       </div>
 
       {/* Students Table */}
-      <div className="rounded-2xl bg-card border border-border overflow-hidden">
+      <div className="glass-panel rounded-3xl border border-white/[0.08] overflow-hidden shadow-2xl">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400 flex items-center justify-center gap-2">
-            <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
-            Loading students...
+          <div className="p-16 text-center text-zinc-400 flex flex-col items-center justify-center gap-3">
+            <RefreshCw className="w-6 h-6 animate-spin text-blue-400" />
+            <p className="text-xs font-medium">Retrieving student telemetry...</p>
           </div>
         ) : filteredStudents.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400">
-            No students found matching current filters.
+          <div className="p-16 text-center text-zinc-400 space-y-2">
+            <Users className="w-8 h-8 text-zinc-600 mx-auto" />
+            <p className="text-sm font-medium text-zinc-300">No students found matching current filters.</p>
+            <p className="text-xs text-zinc-500">Try modifying your search or click "Add Student Handle" above.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-zinc-900/60 border-b border-border text-xs text-zinc-400 uppercase tracking-wider">
+              <thead className="bg-white/[0.03] border-b border-white/[0.06] text-[11px] text-zinc-400 uppercase tracking-wider">
                 <tr>
-                  <th className="py-3 px-4">Student</th>
-                  <th className="py-3 px-4">Class</th>
-                  <th className="py-3 px-4">Rating</th>
-                  <th className="py-3 px-4">Rank</th>
-                  <th className="py-3 px-4">Solved</th>
-                  <th className="py-3 px-4">Contests</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  <th className="py-3.5 px-5">Student</th>
+                  <th className="py-3.5 px-4">Class</th>
+                  <th className="py-3.5 px-4">Rating</th>
+                  <th className="py-3.5 px-4">Rank Tier</th>
+                  <th className="py-3.5 px-4">Solved</th>
+                  <th className="py-3.5 px-4">Contests</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border-subtle">
+              <tbody className="divide-y divide-white/[0.04]">
                 {filteredStudents.map((s) => (
-                  <tr key={s.id} className="hover:bg-zinc-900/30 transition">
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-3">
+                  <tr key={s.id} className="hover:bg-white/[0.02] transition-colors group">
+                    <td className="py-4 px-5">
+                      <div className="flex items-center gap-3.5">
                         <img
                           src={s.stats?.avatar || 'https://userpic.codeforces.org/no-avatar.jpg'}
                           alt={s.codeforcesHandle}
-                          className="w-9 h-9 rounded-full object-cover border border-border bg-zinc-900"
+                          className="w-10 h-10 rounded-2xl object-cover border border-white/10 bg-black/40 shadow-sm"
                         />
                         <div>
                           <Link
                             href={`/students/${s.id}`}
-                            className="font-medium text-zinc-200 hover:text-blue-400 transition"
+                            className="font-semibold text-zinc-100 hover:text-blue-400 transition flex items-center gap-1.5"
                           >
-                            {s.name}
+                            <span>{s.name}</span>
                           </Link>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className={`text-xs ${getRankColor(s.stats?.rank)}`}>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`text-xs font-mono font-medium ${getRankColor(s.stats?.rank)}`}>
                               @{s.codeforcesHandle}
                             </span>
                             {s.group && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.05] text-zinc-400 border border-white/[0.06]">
                                 {s.group}
                               </span>
                             )}
@@ -258,70 +328,78 @@ export default function StudentsPage() {
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4 text-zinc-300">
-                      <span className="text-xs px-2 py-0.5 rounded bg-zinc-900 border border-border">
+                    <td className="py-4 px-4 text-zinc-300">
+                      <span className="text-xs px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-zinc-300">
                         {s.className || 'General'}
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4">
-                      <span className={`font-semibold ${getRankColor(s.stats?.rank)}`}>
+                    <td className="py-4 px-4">
+                      <span className={`text-base font-bold font-mono ${getRankColor(s.stats?.rank)}`}>
                         {s.stats?.rating || '—'}
                       </span>
                       {s.stats?.maxRating ? (
-                        <span className="text-[11px] text-zinc-500 block">
+                        <span className="text-[10px] text-zinc-500 font-mono block">
                           max: {s.stats.maxRating}
                         </span>
                       ) : null}
                     </td>
 
-                    <td className="py-3.5 px-4">
-                      <span className={`text-xs px-2 py-0.5 rounded-full border ${getRankBadgeClass(s.stats?.rank)}`}>
+                    <td className="py-4 px-4">
+                      <span className={`text-xs px-2.5 py-0.5 rounded-full border ${getRankBadgeClass(s.stats?.rank)}`}>
                         {s.stats?.rank || 'unrated'}
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4 font-medium text-zinc-200">
-                      {s.stats?.solvedCount ?? '—'}
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-1.5 font-semibold text-zinc-200 font-mono">
+                        <Code2 className="w-3.5 h-3.5 text-purple-400" />
+                        {s.stats?.solvedCount ?? '—'}
+                      </div>
                     </td>
 
-                    <td className="py-3.5 px-4 text-zinc-400">
-                      {s.stats?.contestCount ?? '—'}
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-1.5 text-zinc-400 font-mono text-xs">
+                        <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                        {s.stats?.contestCount ?? '—'}
+                      </div>
                     </td>
 
-                    <td className="py-3.5 px-4">
+                    <td className="py-4 px-4">
                       {s.active ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Active
+                        <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                          <CheckCircle2 className="w-3 h-3" /> Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-                          <XCircle className="w-3.5 h-3.5" /> Inactive
+                        <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500 bg-white/[0.03] border border-white/[0.06] px-2.5 py-0.5 rounded-full">
+                          <XCircle className="w-3 h-3" /> Inactive
                         </span>
                       )}
                     </td>
 
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="py-4 px-5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleSyncStudent(s.id)}
                           disabled={syncingId === s.id}
-                          title="Sync Codeforces Data"
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-zinc-800 transition disabled:opacity-50"
+                          title="Sync Codeforces Telemetry"
+                          className="p-2 rounded-xl text-zinc-400 hover:text-blue-400 hover:bg-white/[0.06] transition disabled:opacity-50 active:scale-[0.95]"
                         >
-                          <RefreshCw className={`w-4 h-4 ${syncingId === s.id ? 'animate-spin text-blue-500' : ''}`} />
+                          <RefreshCw className={`w-4 h-4 ${syncingId === s.id ? 'animate-spin text-blue-400' : ''}`} />
                         </button>
+
                         <Link
                           href={`/students/${s.id}`}
-                          title="View Profile"
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
+                          title="View Telemetry Dashboard"
+                          className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/[0.06] transition active:scale-[0.95]"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Link>
+
                         <button
                           onClick={() => handleDeleteStudent(s.id, s.name)}
                           title="Remove Student"
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition"
+                          className="p-2 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition active:scale-[0.95]"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -337,23 +415,25 @@ export default function StudentsPage() {
 
       {/* Add Student Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-card border border-border p-6 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+          <div className="w-full max-w-md rounded-3xl glass-panel border border-white/15 p-7 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-blue-500" />
-                Add Student to Class
-              </h2>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                  <UserPlus className="w-4 h-4" />
+                </div>
+                <h2 className="text-base font-bold text-white">Add Student to Roster</h2>
+              </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-zinc-400 hover:text-white text-sm"
+                className="text-zinc-400 hover:text-white text-lg w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10 transition"
               >
                 &times;
               </button>
             </div>
 
             {modalError && (
-              <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300 flex items-start gap-2">
+              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-start gap-2.5">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
                 <span>{modalError}</span>
               </div>
@@ -361,7 +441,7 @@ export default function StudentsPage() {
 
             <form onSubmit={handleAddStudent} className="space-y-4 text-sm">
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                   Student Full Name
                 </label>
                 <input
@@ -370,12 +450,12 @@ export default function StudentsPage() {
                   placeholder="e.g. Alice Johnson"
                   value={nameInput}
                   onChange={(e) => setNameInput(e.target.value)}
-                  className="w-full bg-zinc-900 border border-border rounded-lg px-3 py-2 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 text-xs transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                   Codeforces Handle
                 </label>
                 <input
@@ -384,24 +464,24 @@ export default function StudentsPage() {
                   placeholder="e.g. tourist, Benq, jiangly"
                   value={handleInput}
                   onChange={(e) => setHandleInput(e.target.value)}
-                  className="w-full bg-zinc-900 border border-border rounded-lg px-3 py-2 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 text-xs transition font-mono"
                 />
                 <p className="text-[11px] text-zinc-500 mt-1">
-                  The system will validate this handle against the official Codeforces API before saving.
+                  Validated against Codeforces via your configured API tokens.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                   Classroom
                 </label>
                 <select
                   value={classInput}
                   onChange={(e) => setClassInput(e.target.value)}
-                  className="w-full bg-zinc-900 border border-border rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-zinc-200 focus:outline-none focus:border-blue-500 text-xs transition"
                 >
                   {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
+                    <option key={c.id} value={c.id} className="bg-zinc-900 text-white">
                       {c.name}
                     </option>
                   ))}
@@ -409,33 +489,33 @@ export default function StudentsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">
-                  Optional Group / Track
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                  Optional Group / Cohort
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Team A, Division 2, ICPC Squad"
+                  placeholder="e.g. Division 1 Prep, ICPC Team Alpha"
                   value={groupInput}
                   onChange={(e) => setGroupInput(e.target.value)}
-                  className="w-full bg-zinc-900 border border-border rounded-lg px-3 py-2 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 text-xs transition"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
+                  className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-white/[0.05] transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition shadow-md shadow-blue-600/20 disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition shadow-lg shadow-blue-600/25 disabled:opacity-50 flex items-center gap-1.5 active:scale-[0.97]"
                 >
                   {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  {submitting ? 'Validating Handle...' : 'Add Student'}
+                  {submitting ? 'Verifying with Codeforces...' : 'Add Student'}
                 </button>
               </div>
             </form>

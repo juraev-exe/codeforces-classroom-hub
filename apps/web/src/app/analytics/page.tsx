@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   ExternalLink,
   RefreshCw,
+  Code2,
+  Trophy,
 } from 'lucide-react';
 import {
   BarChart,
@@ -58,89 +60,108 @@ function AnalyticsContent() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-zinc-400">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
-        <p className="text-sm">Aggregating telemetry analytics...</p>
+        <div className="w-12 h-12 rounded-2xl glass-panel flex items-center justify-center border border-white/10 shadow-xl">
+          <RefreshCw className="w-5 h-5 animate-spin text-blue-400" />
+        </div>
+        <p className="text-xs font-medium">Aggregating telemetry analytics...</p>
       </div>
     );
   }
 
   if (!summary) {
-    return <div className="p-8 text-center text-zinc-400">No analytics data available.</div>;
+    return <div className="glass-panel p-12 rounded-3xl border border-white/[0.08] text-center text-zinc-400">No analytics data available.</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <BarChart3 className="w-6 h-6 text-blue-500" />
-            Classroom Analytics
-          </h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            Aggregated rating distribution, student growth, and problem solving telemetry.
-          </p>
-        </div>
+    <div className="space-y-7">
+      {/* Top Header Card */}
+      <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/[0.08] relative overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex items-center gap-3">
-          <select
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-            className="bg-card border border-border rounded-xl px-4 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-500"
-          >
-            <option value="">All Classrooms</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                Insights & Diagnostics
+              </span>
+              <span className="text-xs text-zinc-400">
+                Classroom Growth Telemetry
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2.5">
+              <BarChart3 className="w-7 h-7 text-blue-400" />
+              Classroom Analytics & Insights
+            </h1>
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-xl">
+              Aggregated rating distributions, problem solving velocity, and historical student growth metrics.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-zinc-200 focus:outline-none focus:border-blue-500 transition-all"
+            >
+              <option value="" className="bg-zinc-900">All Classrooms</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id} className="bg-zinc-900">
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-card border border-border">
-          <span className="text-xs text-zinc-400">Average Rating</span>
-          <div className="text-3xl font-bold text-blue-400 mt-1">{summary.averageRating}</div>
-          <span className="text-xs text-zinc-500 mt-1 block">Median: {summary.medianRating}</span>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="glass-panel p-5 rounded-2xl border border-white/[0.08] space-y-1 hover:border-white/15 transition-all">
+          <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Average Rating</span>
+          <div className="text-3xl font-bold text-blue-400 font-mono tracking-tight">{summary.averageRating}</div>
+          <span className="text-[11px] text-zinc-500 font-mono block">Median: {summary.medianRating}</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-card border border-border">
-          <span className="text-xs text-zinc-400">Total Solved</span>
-          <div className="text-3xl font-bold text-purple-400 mt-1">{summary.totalSolvedProblems}</div>
-          <span className="text-xs text-zinc-500 mt-1 block">~{summary.averageSolvedProblems} per student</span>
+        <div className="glass-panel p-5 rounded-2xl border border-white/[0.08] space-y-1 hover:border-white/15 transition-all">
+          <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Total Solved</span>
+          <div className="text-3xl font-bold text-purple-400 font-mono tracking-tight">{summary.totalSolvedProblems}</div>
+          <span className="text-[11px] text-zinc-500 font-mono block">~{summary.averageSolvedProblems} per student</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-card border border-border">
-          <span className="text-xs text-zinc-400">Rating Bounds</span>
-          <div className="text-3xl font-bold text-emerald-400 mt-1">{summary.highestRating}</div>
-          <span className="text-xs text-zinc-500 mt-1 block">Lowest: {summary.lowestRating}</span>
+        <div className="glass-panel p-5 rounded-2xl border border-white/[0.08] space-y-1 hover:border-white/15 transition-all">
+          <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Rating Range</span>
+          <div className="text-3xl font-bold text-emerald-400 font-mono tracking-tight">{summary.highestRating}</div>
+          <span className="text-[11px] text-zinc-500 font-mono block">Lowest: {summary.lowestRating}</span>
         </div>
 
-        <div className="p-5 rounded-2xl bg-card border border-border">
-          <span className="text-xs text-zinc-400">Contest Participations</span>
-          <div className="text-3xl font-bold text-amber-400 mt-1">{summary.totalContestsParticipated}</div>
-          <span className="text-xs text-zinc-500 mt-1 block">Across {summary.totalStudents} students</span>
+        <div className="glass-panel p-5 rounded-2xl border border-white/[0.08] space-y-1 hover:border-white/15 transition-all">
+          <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">Contests Participated</span>
+          <div className="text-3xl font-bold text-amber-400 font-mono tracking-tight">{summary.totalContestsParticipated}</div>
+          <span className="text-[11px] text-zinc-500 block">Across {summary.totalStudents} students</span>
         </div>
       </div>
 
-      {/* Chart: Rating Distribution */}
+      {/* Chart: Rating Distribution & Most Improved */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="p-6 rounded-2xl bg-card border border-border space-y-4">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <Award className="w-4 h-4 text-blue-400" />
-            Class Rating Tiers Breakdown
-          </h2>
+        <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/[0.08] shadow-2xl space-y-4">
+          <div className="flex items-center gap-2">
+            <Award className="w-5 h-5 text-blue-400" />
+            <h2 className="text-base font-bold text-white tracking-tight">Class Rating Tiers Breakdown</h2>
+          </div>
 
-          <div className="h-64 w-full">
+          <div className="h-64 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={summary.ratingDistribution}>
-                <XAxis dataKey="range" stroke="#71717a" fontSize={11} />
-                <YAxis stroke="#52525b" fontSize={11} allowDecimals={false} />
+                <XAxis dataKey="range" stroke="#71717a" fontSize={11} tickLine={false} />
+                <YAxis stroke="#52525b" fontSize={11} allowDecimals={false} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
+                  contentStyle={{
+                    backgroundColor: 'rgba(15, 18, 28, 0.95)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: '12px',
+                  }}
                 />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
                   {summary.ratingDistribution.map((_, index) => (
                     <Cell
                       key={`cell-${index}`}
@@ -154,37 +175,39 @@ function AnalyticsContent() {
         </div>
 
         {/* Most Improved Students */}
-        <div className="p-6 rounded-2xl bg-card border border-border space-y-4">
-          <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <Flame className="w-4 h-4 text-orange-400" />
-            Most Improved Students
-          </h2>
+        <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/[0.08] shadow-2xl space-y-4">
+          <div className="flex items-center gap-2">
+            <Flame className="w-5 h-5 text-orange-400" />
+            <h2 className="text-base font-bold text-white tracking-tight">Top Rating Climbers</h2>
+          </div>
 
           <div className="space-y-3 pt-2">
             {summary.mostImprovedStudents.length > 0 ? (
               summary.mostImprovedStudents.map((s, idx) => (
                 <div
                   key={s.studentId}
-                  className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/60 border border-border-subtle"
+                  className="flex items-center justify-between p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xs font-semibold text-zinc-500">#{idx + 1}</span>
+                    <span className="w-6 h-6 rounded-lg bg-white/[0.05] text-[11px] font-bold text-zinc-400 flex items-center justify-center">
+                      #{idx + 1}
+                    </span>
                     <div>
-                      <p className="text-sm font-medium text-zinc-200">{s.name}</p>
-                      <p className="text-xs text-zinc-400">@{s.handle}</p>
+                      <p className="text-xs font-semibold text-zinc-100">{s.name}</p>
+                      <p className="text-[11px] text-zinc-400 font-mono">@{s.handle}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs font-bold px-2.5 py-1 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-mono">
                       +{s.ratingChange}
                     </span>
-                    <span className="text-[11px] text-zinc-400 block mt-1">Rating: {s.currentRating}</span>
+                    <span className="text-[10px] text-zinc-400 font-mono block mt-1">Rating: {s.currentRating}</span>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-xs text-zinc-500 py-6 text-center">
-                No recent rating changes recorded yet.
+              <p className="text-xs text-zinc-500 py-8 text-center">
+                No recent rating swings recorded yet.
               </p>
             )}
           </div>
@@ -192,33 +215,33 @@ function AnalyticsContent() {
       </div>
 
       {/* Recent Submissions Feed */}
-      <div className="p-6 rounded-2xl bg-card border border-border space-y-4">
-        <h2 className="text-base font-semibold text-white flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-emerald-400" />
-          Recent Student Submissions Feed
-        </h2>
+      <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/[0.08] shadow-2xl space-y-4">
+        <div className="flex items-center gap-2">
+          <Code2 className="w-5 h-5 text-emerald-400" />
+          <h2 className="text-base font-bold text-white tracking-tight">Recent Student Activity Stream</h2>
+        </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-2xl border border-white/[0.06] bg-black/20">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-border text-xs text-zinc-400 uppercase tracking-wider">
+            <thead className="bg-white/[0.03] border-b border-white/[0.06] text-[11px] text-zinc-400 uppercase tracking-wider">
               <tr>
-                <th className="pb-3">Student</th>
-                <th className="pb-3">Problem</th>
-                <th className="pb-3">Verdict</th>
-                <th className="pb-3">Rating</th>
-                <th className="pb-3 text-right">Time</th>
+                <th className="py-3 px-4">Student</th>
+                <th className="py-3 px-4">Problem</th>
+                <th className="py-3 px-4">Verdict</th>
+                <th className="py-3 px-4">Difficulty</th>
+                <th className="py-3 px-4 text-right">Submitted</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border-subtle">
+            <tbody className="divide-y divide-white/[0.04]">
               {summary.recentActivity.map((sub) => {
                 const verdict = getVerdictBadge(sub.verdict);
                 return (
-                  <tr key={sub.id} className="hover:bg-zinc-900/30 transition">
-                    <td className="py-3">
-                      <span className="font-medium text-zinc-200">{sub.studentName}</span>
-                      <span className="text-xs text-zinc-400 block">@{sub.studentHandle}</span>
+                  <tr key={sub.id} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="py-3.5 px-4">
+                      <span className="font-semibold text-zinc-200 text-xs">{sub.studentName || sub.studentHandle}</span>
+                      <span className="text-[11px] text-zinc-400 font-mono block">@{sub.studentHandle}</span>
                     </td>
-                    <td className="py-3">
+                    <td className="py-3.5 px-4">
                       <a
                         href={
                           sub.contestId
@@ -227,27 +250,27 @@ function AnalyticsContent() {
                         }
                         target="_blank"
                         rel="noreferrer"
-                        className="text-zinc-200 hover:text-blue-400 transition inline-flex items-center gap-1"
+                        className="text-zinc-200 hover:text-blue-400 transition inline-flex items-center gap-1.5 text-xs font-medium"
                       >
                         {sub.problemIndex}. {sub.problemName}
                         <ExternalLink className="w-3 h-3 text-zinc-500" />
                       </a>
                     </td>
-                    <td className="py-3">
+                    <td className="py-3.5 px-4">
                       <span className={`text-xs px-2.5 py-0.5 rounded-full border ${verdict.className}`}>
                         {verdict.label}
                       </span>
                     </td>
-                    <td className="py-3 text-zinc-300">
+                    <td className="py-3.5 px-4 text-zinc-300">
                       {sub.problemRating ? (
-                        <span className="text-xs px-2 py-0.5 rounded bg-zinc-900 border border-border">
-                          {sub.problemRating}
+                        <span className="text-xs px-2 py-0.5 rounded-md bg-white/[0.05] border border-white/10 font-mono text-zinc-200">
+                          ★ {sub.problemRating}
                         </span>
                       ) : (
-                        '—'
+                        <span className="text-zinc-600">—</span>
                       )}
                     </td>
-                    <td className="py-3 text-right text-xs text-zinc-500">
+                    <td className="py-3.5 px-4 text-right text-xs text-zinc-500">
                       {new Date(sub.submittedAt).toLocaleDateString()}
                     </td>
                   </tr>

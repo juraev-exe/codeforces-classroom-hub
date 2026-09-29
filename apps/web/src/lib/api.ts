@@ -1,7 +1,18 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+function getApiBase(): string {
+  if (process.env.NEXT_PUBLIC_API_URL !== undefined && process.env.NEXT_PUBLIC_API_URL !== '') {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  // When running in the browser on Vercel or locally, default to same-origin relative URL
+  if (typeof window !== 'undefined') {
+    return '';
+  }
+  // In SSR fallback
+  return process.env.PORT ? `http://localhost:${process.env.PORT}` : 'http://localhost:3000';
+}
 
 export async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE}${path}`;
+  const base = getApiBase();
+  const url = `${base}${path}`;
 
   let authHeader: Record<string, string> = {};
   if (typeof window !== 'undefined') {

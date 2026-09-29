@@ -9,6 +9,8 @@ import {
   Bell,
   CheckCircle2,
   AlertCircle,
+  Radio,
+  Timer,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { formatDuration } from '@/lib/cf-utils';
@@ -20,6 +22,7 @@ export default function ContestsPage() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'recent'>('upcoming');
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   async function loadContests() {
     try {
@@ -44,8 +47,11 @@ export default function ContestsPage() {
   async function handleSyncContests() {
     try {
       setSyncing(true);
-      await fetchApi('/api/sync/contests', { method: 'POST' });
+      setSyncMsg(null);
+      const res = await fetchApi<{ count: number }>('/api/sync/contests', { method: 'POST' });
       await loadContests();
+      setSyncMsg(`Successfully refreshed ${res.count} contests from Codeforces.`);
+      setTimeout(() => setSyncMsg(null), 4000);
     } catch (err: any) {
       alert(`Sync failed: ${err.message}`);
     } finally {
@@ -56,66 +62,88 @@ export default function ContestsPage() {
   const displayedContests = activeTab === 'upcoming' ? upcoming : allContests;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
-            <Calendar className="w-6 h-6 text-blue-500" />
-            Codeforces Contest Tracker
-          </h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            Track upcoming rounds, schedules, student registrations, and automated alerts.
-          </p>
-        </div>
+    <div className="space-y-7">
+      {/* Top Header Card */}
+      <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/[0.08] relative overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex items-center gap-3">
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                Official Schedule
+              </span>
+              <span className="text-xs text-zinc-400">
+                Codeforces Calendar Telemetry
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2.5">
+              <Calendar className="w-7 h-7 text-blue-400" />
+              Contest Calendar & Tracker
+            </h1>
+            <p className="text-xs sm:text-sm text-zinc-400 max-w-xl">
+              Track upcoming Div. 1, Div. 2, Div. 3, Educational and Global rounds with automated alerts for students.
+            </p>
+          </div>
+
           <button
             onClick={handleSyncContests}
             disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition shadow-lg shadow-blue-600/20 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-all shadow-lg shadow-blue-600/25 disabled:opacity-50 active:scale-[0.97] w-fit"
           >
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing...' : 'Sync Contests'}
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-border pb-3">
-        <button
-          onClick={() => setActiveTab('upcoming')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-            activeTab === 'upcoming'
-              ? 'bg-blue-600/20 text-blue-400 border border-blue-600/40'
-              : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-          }`}
-        >
-          Upcoming ({upcoming.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('recent')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-            activeTab === 'recent'
-              ? 'bg-blue-600/20 text-blue-400 border border-blue-600/40'
-              : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-          }`}
-        >
-          Recent & Past Rounds
-        </button>
+      {syncMsg && (
+        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-center gap-2.5 shadow-lg shadow-emerald-950/20">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="font-medium">{syncMsg}</span>
+        </div>
+      )}
+
+      {/* Apple-style Segmented Filter Bar */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="glass-panel p-1 rounded-2xl border border-white/[0.08] flex items-center gap-1">
+          <button
+            onClick={() => setActiveTab('upcoming')}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+              activeTab === 'upcoming'
+                ? 'bg-blue-600/25 text-blue-300 border border-blue-500/40 shadow-sm'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            Upcoming Rounds ({upcoming.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('recent')}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+              activeTab === 'recent'
+                ? 'bg-blue-600/25 text-blue-300 border border-blue-500/40 shadow-sm'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            Past & Completed Rounds ({allContests.length})
+          </button>
+        </div>
       </div>
 
-      {/* Contest Grid */}
+      {/* Contest Cards Grid */}
       {loading ? (
-        <div className="p-12 text-center text-zinc-400 flex items-center justify-center gap-2">
-          <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
-          Loading contest schedule...
+        <div className="p-16 text-center text-zinc-400 flex flex-col items-center justify-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin text-blue-400" />
+          <p className="text-xs font-medium">Fetching official contest schedule...</p>
         </div>
       ) : displayedContests.length === 0 ? (
-        <div className="p-12 text-center text-zinc-400 bg-card rounded-2xl border border-border">
-          No contests found. Click "Sync Contests" to fetch the latest schedule directly from Codeforces.
+        <div className="glass-panel p-16 rounded-3xl border border-white/[0.08] text-center text-zinc-400 space-y-2">
+          <Calendar className="w-8 h-8 text-zinc-600 mx-auto" />
+          <p className="text-sm font-medium text-zinc-300">No contests found for this view.</p>
+          <p className="text-xs text-zinc-500">Click "Sync Contests" above to refresh from Codeforces API.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {displayedContests.map((c) => {
             const startDate = new Date(c.startTime);
             const isUpcoming = c.phase === 'BEFORE';
@@ -124,35 +152,36 @@ export default function ContestsPage() {
             return (
               <div
                 key={c.id}
-                className="p-5 rounded-2xl bg-card border border-border hover:border-zinc-700 transition flex flex-col justify-between space-y-4 shadow-sm"
+                className="glass-card p-6 rounded-3xl border border-white/[0.08] flex flex-col justify-between space-y-5"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
                     <span
-                      className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
                         isLive
-                          ? 'bg-rose-950/60 text-rose-400 border-rose-800/50 animate-pulse'
+                          ? 'bg-rose-500/15 text-rose-300 border-rose-500/30 animate-pulse flex items-center gap-1.5'
                           : isUpcoming
-                          ? 'bg-blue-950/60 text-blue-400 border-blue-800/50'
-                          : 'bg-zinc-900 text-zinc-400 border-zinc-800'
+                          ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                          : 'bg-white/[0.04] text-zinc-400 border-white/[0.06]'
                       }`}
                     >
+                      {isLive && <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>}
                       {isLive ? 'LIVE NOW' : isUpcoming ? 'UPCOMING' : 'FINISHED'}
                     </span>
 
-                    <span className="text-xs text-zinc-500 font-mono">
-                      #{c.codeforcesContestId}
+                    <span className="text-[11px] text-zinc-500 font-mono">
+                      Round #{c.codeforcesContestId}
                     </span>
                   </div>
 
-                  <h3 className="text-base font-semibold text-white mt-2.5 leading-snug">
+                  <h3 className="text-base font-bold text-white mt-3 leading-snug">
                     {c.name}
                   </h3>
 
-                  <div className="space-y-1.5 mt-3 text-xs text-zinc-400">
+                  <div className="space-y-2 mt-4 text-xs text-zinc-400">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-                      <span>{startDate.toLocaleString()} (Local Time)</span>
+                      <span>{startDate.toLocaleString()}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-3.5 h-3.5 text-zinc-500" />
@@ -161,19 +190,19 @@ export default function ContestsPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-border-subtle flex items-center justify-between gap-3">
+                <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3">
                   <a
                     href={`https://codeforces.com/contestRegistration/${c.codeforcesContestId}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 font-medium transition"
+                    className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 font-semibold transition"
                   >
                     Open on Codeforces
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
 
                   {isUpcoming && (
-                    <span className="text-[11px] text-zinc-500 flex items-center gap-1">
+                    <span className="text-[11px] text-zinc-500 flex items-center gap-1 font-medium">
                       <Bell className="w-3 h-3 text-amber-400" /> Telegram alert enabled
                     </span>
                   )}

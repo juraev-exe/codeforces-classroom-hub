@@ -6,7 +6,8 @@ import type { TeacherDashboardResponse, TeacherProfileOverview } from '@cf-hub/t
 
 export class TeacherService {
   async getDashboardData(): Promise<TeacherDashboardResponse> {
-    const handle = process.env.TEACHER_CF_HANDLE || 'tourist';
+    const teacherUser = await prisma.user.findFirst({ where: { role: 'teacher' } });
+    const handle = teacherUser?.codeforcesHandle || (process.env.TEACHER_CF_HANDLE && process.env.TEACHER_CF_HANDLE !== 'tourist' ? process.env.TEACHER_CF_HANDLE : 'AbubakrJ');
 
     // 1. Fetch live or cached teacher stats from Codeforces API
     let teacherProfile: TeacherProfileOverview = {

@@ -1,8 +1,9 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env from root or local
-dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
+// Load .env from monorepo root or local directory
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config();
 
 import { Telegraf } from 'telegraf';
@@ -16,6 +17,7 @@ import type {
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const apiUrl = process.env.API_URL || 'http://localhost:4000';
+const webUrl = process.env.WEB_URL || 'http://localhost:3000';
 const adminIds = (process.env.TELEGRAM_ADMIN_IDS || '')
   .split(',')
   .map((s) => s.trim())
@@ -27,29 +29,33 @@ if (!token) {
 
 const bot = new Telegraf(token || 'dummy_token');
 
-// Authorization Middleware
-bot.use(async (ctx, next) => {
-  const userId = String(ctx.from?.id);
-  const username = ctx.from?.username || 'Unknown';
-
-  if (adminIds.length > 0 && !adminIds.includes(userId)) {
-    console.warn(`[Bot Auth Denied] Unauthorized access attempt by ${username} (ID: ${userId})`);
-    await ctx.reply(
-      `⛔ Unauthorized access. Your Telegram user ID is \`${userId}\`.\nPlease ask the administrator to whitelist your ID.`,
-      { parse_mode: 'Markdown' }
-    );
-    return;
-  }
-
-  return next();
-});
-
 // Helper fetch from API
 async function apiGet<T>(endpoint: string): Promise<T> {
   const res = await fetch(`${apiUrl}${endpoint}`);
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error(`API returned ${res.status}: ${errorText}`);
+    let parsed: any;
+    try {
+      parsed = JSON.parse(errorText);
+    } catch {}
+    throw new Error(parsed?.error || `API returned ${res.status}: ${errorText}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+async function apiPost<T>(endpoint: string, body: any): Promise<T> {
+  const res = await fetch(`${apiUrl}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    let parsed: any;
+    try {
+      parsed = JSON.parse(errorText);
+    } catch {}
+    throw new Error(parsed?.error || `API returned ${res.status}: ${errorText}`);
   }
   return res.json() as Promise<T>;
 }
@@ -60,34 +66,148 @@ async function apiGet<T>(endpoint: string): Promise<T> {
 
 bot.start((ctx) => {
   ctx.reply(
-    `👋 *Welcome to Codeforces Classroom Hub Bot!*\n\n` +
-      `Here are the available commands:\n` +
-      `• /my - Show teacher Codeforces statistics\n` +
-      `• /class - Show class overview and statistics\n` +
-      `• /students - List students and their ratings\n` +
-      `• /leaderboard - View current class leaderboard\n` +
-      `• /contests - View upcoming Codeforces contests\n` +
-      `• /next - Show details for the next upcoming contest\n` +
-      `• /rating <handle> - Check a user's Codeforces rating\n` +
-      `• /progress <handle> - View rating progress and trend\n` +
-      `• /problems <handle> - View problem statistics\n` +
-      `• /help - Display this help menu`,
+    `👋 *Welcome to Codeforces Classroom Hub Bot!*\n` +
+      `_Managed by Abubakr Juraev (@AbubakrJ)_\n\n` +
+      `Students can join the classroom instantly:\n` +
+      `• \`/join <cf_handle> [Full Name]\` - Enroll in classroom\n` +
+      `• \`/link\` - Get the 1-click web join link\n\n` +
+      `Classroom & Stats Commands:\n` +
+      `• \`/my\` - View teacher profile & stats\n` +
+      `• \`/class\` - View classroom statistics\n` +
+      `• \`/students\` - View enrolled students\n` +
+      `• \`/leaderboard\` - View current classroom rankings\n` +
+      `• \`/contests\` - View upcoming Codeforces rounds\n` +
+      `• \`/next\` - Next contest countdown\n` +
+      `• \`/rating <handle>\` - Check user Codeforces rating\n` +
+      `• \`/problems <handle>\` - View solved problems breakdown\n` +
+      `• \`/help\` - Show this help menu\n\n` +
+      `🌐 [Open Classroom Dashboard](${webUrl})`,
     { parse_mode: 'Markdown' }
   );
 });
 
 bot.help((ctx) => {
   ctx.reply(
-    `📚 *Command Guide*\n\n` +
-      `• \`/my\` : View teacher profile and live rating\n` +
-      `• \`/class\` : Summary of active students, avg rating, solved count\n` +
+    `📚 *Codeforces Classroom Hub Guide*\n\n` +
+      `• \`/join <handle> [name]\` : Enroll directly in the classroom\n` +
+      `• \`/link\` : Shareable student join invite URL\n` +
+      `• \`/my\` : Teacher Abubakr Juraev profile & live stats\n` +
+      `• \`/class\` : Class overview (avg rating, total solved, students)\n` +
+      `• \`/students\` : Roster of enrolled students and their ratings\n` +
       `• \`/leaderboard\` : Top ranked students in the classroom\n` +
-      `• \`/contests\` : Upcoming round schedule\n` +
-      `• \`/next\` : Next upcoming contest countdown\n` +
-      `• \`/rating tourist\` : Check rating for any CF handle\n` +
-      `• \`/problems tourist\` : View tags solved and topic breakdown`,
+      `• \`/contests\` : Upcoming official Codeforces rounds\n` +
+      `• \`/next\` : Countdown to the nearest upcoming round\n` +
+      `• \`/rating <handle>\` : Real-time rating check for any CF handle\n` +
+      `• \`/problems <handle>\` : Solved count and activity breakdown\n\n` +
+      `🌐 Dashboard: ${webUrl}`,
     { parse_mode: 'Markdown' }
   );
+});
+
+bot.command('link', (ctx) => {
+  ctx.reply(
+    `🔗 *Student Classroom Join Link*\n\n` +
+      `Share this link with your students to automatically join the classroom:\n` +
+      `👉 \`${webUrl}/join\`\n\n` +
+      `Or students can message this bot (@CodeForcesStudents_Bot):\n` +
+      `\`/join <handle> [Full Name]\`\n\n` +
+      `_No passwords or login required!_`,
+    { parse_mode: 'Markdown' }
+  );
+});
+
+bot.command('join', async (ctx) => {
+  const text = ctx.message.text.trim();
+  const parts = text.split(/\s+/).slice(1);
+
+  if (parts.length === 0) {
+    return ctx.reply(
+      `ℹ️ *How to join the classroom:*\n\n` +
+        `Send: \`/join <CF_Handle> [Your Full Name]\`\n\n` +
+        `*Examples:*\n` +
+        `• \`/join tourist Gennady Korotkevich\`\n` +
+        `• \`/join Petr Petr Mitrichev\`\n\n` +
+        `Or use the 1-click web join page:\n` +
+        `🔗 ${webUrl}/join`,
+      { parse_mode: 'Markdown' }
+    );
+  }
+
+  const rawHandle = parts[0].replace(/^@/, '');
+  const name = parts.slice(1).join(' ') || rawHandle;
+
+  try {
+    // 1. Check if user already exists
+    const existingStudents = await apiGet<any[]>('/api/students');
+    const existing = existingStudents.find(
+      (s) => s.codeforcesHandle.toLowerCase() === rawHandle.toLowerCase()
+    );
+
+    if (existing) {
+      const stats = existing.stats;
+      const r = stats?.rating || 'Unrated';
+      const rank = stats?.rank || 'unrated';
+      const solved = stats?.solvedCount || 0;
+      return ctx.reply(
+        `✅ *Already Enrolled!*\n\n` +
+          `👤 *Name:* ${existing.name}\n` +
+          `🎯 *Handle:* @${existing.codeforcesHandle}\n` +
+          `⭐ *Rating:* ${r} (${rank})\n` +
+          `✅ *Solved:* ${solved} problems\n\n` +
+          `[View Classroom Roster](${webUrl}/students)`,
+        { parse_mode: 'Markdown' }
+      );
+    }
+
+    // 2. Fetch available classes
+    const classes = await apiGet<any[]>('/api/classes');
+    if (!classes || classes.length === 0) {
+      return ctx.reply('❌ No active classroom found on the server. Please notify the teacher.');
+    }
+    const targetClass = classes[0];
+
+    await ctx.reply(`⏳ Validating Codeforces handle \`@${rawHandle}\` and syncing submissions...`, {
+      parse_mode: 'Markdown',
+    });
+
+    // 3. Register student
+    const newStudent = await apiPost<any>('/api/students', {
+      name,
+      codeforcesHandle: rawHandle,
+      classId: targetClass.id,
+      group: 'Standard',
+    });
+
+    // 4. Sync immediately
+    try {
+      await apiPost<any>(`/api/students/${newStudent.id}/sync`, {});
+    } catch {
+      // background sync handles it if already triggered
+    }
+
+    // 5. Get final student details
+    const updated = await apiGet<any>(`/api/students/${newStudent.id}`);
+    const stats = updated.stats;
+    const rating = stats?.rating || 'Unrated';
+    const rank = stats?.rank || 'unrated';
+    const maxRating = stats?.maxRating || 'N/A';
+    const solved = stats?.solvedCount || 0;
+
+    await ctx.reply(
+      `🎉 *Successfully Enrolled in Classroom Hub!*\n\n` +
+        `👤 *Name:* ${updated.name}\n` +
+        `🎯 *Codeforces Handle:* @${updated.codeforcesHandle}\n` +
+        `⭐ *Rating:* ${rating} (${rank})\n` +
+        `🏆 *Max Rating:* ${maxRating}\n` +
+        `✅ *Problems Solved:* ${solved}\n` +
+        `🏫 *Classroom:* ${targetClass.name}\n\n` +
+        `Your daily solves and contest performances are now actively tracked!\n` +
+        `🏆 [View Leaderboard](${webUrl}/leaderboard)`,
+      { parse_mode: 'Markdown' }
+    );
+  } catch (err: any) {
+    await ctx.reply(`❌ Enrollment error: ${err.message}`);
+  }
 });
 
 bot.command('my', async (ctx) => {
@@ -101,7 +221,7 @@ bot.command('my', async (ctx) => {
       `🏆 *Max Rating:* ${t.maxRating} (${t.maxRank})\n` +
       `🎯 *Problems Solved:* ${t.totalSolved}\n` +
       `📊 *Total Contests:* ${t.totalContests}\n\n` +
-      `[View Web Dashboard](${process.env.WEB_URL || 'http://localhost:3000'})`;
+      `🌐 [View Web Dashboard](${webUrl})`;
 
     await ctx.reply(message, { parse_mode: 'Markdown' });
   } catch (err: any) {
@@ -134,7 +254,7 @@ bot.command('students', async (ctx) => {
   try {
     const students = await apiGet<any[]>('/api/students');
     if (!students || students.length === 0) {
-      return ctx.reply('No students registered yet.');
+      return ctx.reply('No students registered yet. Use `/join <handle> [name]` to register!');
     }
 
     let msg = `🎓 *Classroom Students (${students.length})*\n\n`;
@@ -238,25 +358,57 @@ bot.command('rating', async (ctx) => {
   }
 
   try {
-    const res = await fetch(`https://codeforces.com/api/user.info?handles=${handle.trim()}`);
-    const data = await res.json();
+    const user = await apiGet<any>(`/api/codeforces/user/${handle.trim()}`);
 
-    if (data.status !== 'OK' || !data.result?.[0]) {
-      return ctx.reply(`❌ Codeforces handle "${handle}" not found.`);
-    }
-
-    const user = data.result[0];
     const msg =
       `👤 *Codeforces Profile: ${user.handle}*\n\n` +
       `⭐ *Rating:* ${user.rating || 0} (${user.rank || 'unrated'})\n` +
       `🏆 *Max Rating:* ${user.maxRating || 0} (${user.maxRank || 'unrated'})\n` +
       `🌍 *Country:* ${user.country || 'N/A'}\n` +
       `🏢 *Organization:* ${user.organization || 'N/A'}\n` +
-      `🤝 *Contribution:* ${user.contribution}`;
+      `🤝 *Contribution:* ${user.contribution || 0}`;
 
     await ctx.reply(msg, { parse_mode: 'Markdown' });
   } catch (err: any) {
-    await ctx.reply(`❌ Error: ${err.message}`);
+    await ctx.reply(`❌ Codeforces handle "${handle}" not found or error: ${err.message}`);
+  }
+});
+
+bot.command('problems', async (ctx) => {
+  const parts = ctx.message.text.split(' ');
+  const handle = parts[1];
+
+  if (!handle) {
+    return ctx.reply('Usage: `/problems <codeforces_handle>`', { parse_mode: 'Markdown' });
+  }
+
+  try {
+    const students = await apiGet<any[]>('/api/students');
+    const matched = students.find((s) => s.codeforcesHandle.toLowerCase() === handle.trim().toLowerCase());
+
+    if (matched && matched.stats) {
+      const s = matched.stats;
+      return ctx.reply(
+        `📊 *Classroom Solved Stats: @${matched.codeforcesHandle}* (${matched.name})\n\n` +
+          `✅ *Total Solved:* ${s.solvedCount} problems\n` +
+          `⭐ *Rating:* ${s.rating || 'Unrated'} (${s.rank || 'unrated'})\n` +
+          `🏆 *Contests Attended:* ${s.contestCount || 0}\n\n` +
+          `[View Profile on Dashboard](${webUrl}/students/${matched.id})`,
+        { parse_mode: 'Markdown' }
+      );
+    }
+
+    const user = await apiGet<any>(`/api/codeforces/user/${handle.trim()}`);
+    ctx.reply(
+      `📊 *Codeforces Profile: @${user.handle}*\n\n` +
+        `⭐ *Rating:* ${user.rating || 0} (${user.rank || 'unrated'})\n` +
+        `🏆 *Max Rating:* ${user.maxRating || 0} (${user.maxRank || 'unrated'})\n\n` +
+        `💡 *Enroll in classroom to track all submissions and topic accuracy:*\n` +
+        `Send: \`/join ${user.handle}\``,
+      { parse_mode: 'Markdown' }
+    );
+  } catch (err: any) {
+    await ctx.reply(`❌ Error checking problems for "${handle}": ${err.message}`);
   }
 });
 
@@ -297,14 +449,18 @@ cron.schedule('*/10 * * * *', async () => {
 
 // Launch bot if token is present
 if (token && token !== 'dummy_token') {
-  bot
-    .launch()
-    .then(() => {
-      console.log('🤖 Telegram Bot started successfully');
+  bot.telegram
+    .getMe()
+    .then((botInfo) => {
+      console.log(`🤖 Telegram Bot (@${botInfo.username}) is active and listening for commands!`);
     })
     .catch((err) => {
-      console.error('Telegram Bot failed to start:', err.message);
+      console.error('❌ Failed to connect to Telegram Bot API:', err.message);
     });
+
+  bot.launch().catch((err) => {
+    console.error('❌ Telegram Bot polling error:', err.message);
+  });
 
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));

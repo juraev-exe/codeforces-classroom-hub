@@ -1,0 +1,625 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - navigation "Main Navigation" [ref=e3]:
+    - generic [ref=e4]:
+      - link "Home" [ref=e5] [cursor=pointer]:
+        - /url: /#hero
+        - generic [ref=e6]: <
+        - text: juraev
+        - generic [ref=e7]: .
+        - text: exe
+        - generic [ref=e8]: />
+      - list [ref=e9]:
+        - listitem [ref=e10]:
+          - link "About" [ref=e11] [cursor=pointer]:
+            - /url: /#about
+        - listitem [ref=e12]:
+          - link "Journey" [ref=e13] [cursor=pointer]:
+            - /url: /#journey
+        - listitem [ref=e14]:
+          - link "Profiles" [ref=e15] [cursor=pointer]:
+            - /url: /#cp
+        - listitem [ref=e16]:
+          - link "Projects" [ref=e17] [cursor=pointer]:
+            - /url: /#projects
+        - listitem [ref=e18]:
+          - link "Skills" [ref=e19] [cursor=pointer]:
+            - /url: /#skills
+        - listitem [ref=e20]:
+          - link "Contact" [ref=e21] [cursor=pointer]:
+            - /url: /#contact
+        - listitem [ref=e22]:
+          - link "Blog" [ref=e23] [cursor=pointer]:
+            - /url: /blog
+        - listitem [ref=e24]:
+          - link "Resume" [ref=e25] [cursor=pointer]:
+            - /url: /resume
+      - button "Toggle theme" [ref=e27] [cursor=pointer]
+  - main [ref=e31]:
+    - generic [ref=e33]:
+      - heading "Abubakr" [level=1] [ref=e34]
+      - paragraph [ref=e35]:
+        - generic [ref=e36]: I'm a
+        - generic [aria-hidden] [ref=e37]: Competi
+        - generic [ref=e39]: Competitive Programmer, Problem Solver, and C++ Developer
+      - paragraph [ref=e40]: A cybersecurity student and software developer from Tajikistan. I specialize in algorithmic optimization, systems security auditing, and building robust full-stack applications with clean code and real-world utility.
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - generic [ref=e43]:
+            - generic [ref=e44]: "500"
+            - generic [ref=e45]: +
+          - generic [ref=e46]: Problems Solved
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - generic [ref=e50]: "7"
+            - generic [ref=e51]: +
+          - generic [ref=e52]: Platforms
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - generic [ref=e56]: "2"
+            - generic [ref=e57]: +
+          - generic [ref=e58]: Years Competing
+    - generic [ref=e60]:
+      - generic [ref=e61]: 01 / about me
+      - heading "Who I Am" [level=2] [ref=e62]
+      - generic [ref=e63]:
+        - generic [ref=e64]:
+          - paragraph [ref=e65]: I am a competitive programmer and software developer dedicated to the craft of algorithmic problem-solving. My journey began with a deep curiosity about how computers process logic—today, I channel that passion into engineering elegant, optimal solutions to complex technical challenges.
+          - paragraph [ref=e66]: Outside of optimization and competitive coding, I build practical tools, research systems security, and deploy full-stack applications. I strongly believe that writing clean, efficient, and mathematically sound code is a form of art.
+          - generic [ref=e67]:
+            - generic [ref=e68]: Algorithms
+            - generic [ref=e69]: Competitive Programming
+            - generic [ref=e70]: Mathematics
+            - generic [ref=e71]: C++ Development
+            - generic [ref=e72]: Python
+            - generic [ref=e73]: Problem Solving
+            - generic [ref=e74]: Full-stack Web
+            - generic [ref=e75]: Cybersecurity
+            - generic [ref=e76]: Networking
+            - generic [ref=e77]: Sysadmin & DevOps
+            - generic [ref=e78]: AI & Machine Learning
+            - generic [ref=e79]: Databases
+        - generic [ref=e80]:
+          - img "Abubakr" [ref=e82]
+          - generic [ref=e83]:
+            - generic [ref=e85]: Location
+            - generic [ref=e86]: Tajikistan
+          - generic [ref=e87]:
+            - generic [ref=e89]: Focus
+            - generic [ref=e90]: Everything
+          - generic [ref=e91]:
+            - generic [ref=e93]: Languages
+            - generic [ref=e94]: C++, Python, JS
+          - generic [ref=e95]:
+            - generic [ref=e97]: Status
+            - generic [ref=e98]: Learning
+    - generic [ref=e100]:
+      - generic [ref=e101]: 02 / my journey
+      - heading "The Path So Far" [level=2] [ref=e102]
+      - paragraph [ref=e103]: Key milestones that shaped my growth as a programmer and developer.
+      - generic [ref=e104]:
+        - generic [ref=e105]:
+          - generic [ref=e107]:
+            - generic [ref=e108]: 🎓
+            - generic [ref=e110]:
+              - generic [ref=e111]: Education
+              - generic [ref=e112]: 2016–2021
+          - heading "Lyceum for Gifted Students" [level=3] [ref=e113]
+          - paragraph [ref=e114]: Graduated with top honors, securing perfect marks in Mathematics, English, and Computer Science. Initiated my technical journey here through self-directed studies in programming, algorithms, and cybersecurity fundamentals.
+          - generic: "01"
+        - generic [ref=e115]:
+          - generic [ref=e117]:
+            - generic [ref=e118]: 🌏
+            - generic [ref=e120]:
+              - generic [ref=e121]: International
+              - generic [ref=e122]: 2022–2023
+          - heading "Foundation in Science — Xiamen University Malaysia" [level=3] [ref=e123]
+          - paragraph [ref=e124]: Completed an intensive 7-month Foundation in Science program in Malaysia. Acquired strong academic fundamentals in logical reasoning while developing cross-cultural adaptability and independence.
+          - generic: "02"
+        - generic [ref=e125]:
+          - generic [ref=e127]:
+            - generic [ref=e128]: 🖥️
+            - generic [ref=e130]:
+              - generic [ref=e131]: Work
+              - generic [ref=e132]: 2023–2024
+          - heading "IT Support Technician — LFGS" [level=3] [ref=e133]
+          - paragraph [ref=e134]: Administered school computing infrastructure by provisioning OS environments and managing networks. Reduced operational costs by optimizing software asset allocation and workstation life cycles.
+          - generic: "03"
+        - generic [ref=e135]:
+          - generic [ref=e137]:
+            - generic [ref=e138]: 🏆
+            - generic [ref=e140]:
+              - generic [ref=e141]: Achievement
+              - generic [ref=e142]: "2024"
+          - heading "1st Place — National Programming Olympiad" [level=3] [ref=e143]
+          - paragraph [ref=e144]: Won 1st place in the National Programming Olympiad. Recognized with distinction certificates for speed and accuracy in advanced problem-solving. Began active competitive training on Codeforces and ACMP.
+          - generic: "04"
+        - generic [ref=e145]:
+          - generic [ref=e147]:
+            - generic [ref=e148]: 👨‍🏫
+            - generic [ref=e150]:
+              - generic [ref=e151]: Teaching
+              - generic [ref=e152]: 2024–2025
+          - heading "Olympic Teacher (C++) — LFGS" [level=3] [ref=e153]
+          - paragraph [ref=e154]: Designed curricula and mentored students in C++ and algorithms for competitive programming. Successfully coached a student who secured 3rd place in the National Olympiad Finals.
+          - generic: "05"
+        - generic [ref=e155]:
+          - generic [ref=e157]:
+            - generic [ref=e158]: 📚
+            - generic [ref=e160]:
+              - generic [ref=e161]: Teaching
+              - generic [ref=e162]: 2025–2026
+          - heading "IT Teacher — LFGS (Cambridge Curriculum)" [level=3] [ref=e163]
+          - paragraph [ref=e164]: Delivered Information Technology instruction to Grade 5 and Grade 7 classes following the Cambridge International curriculum. Designed hands-on labs and analytical exercises.
+          - generic: "06"
+        - generic [ref=e165]:
+          - generic [ref=e167]:
+            - generic [ref=e168]: 🔐
+            - generic [ref=e170]:
+              - generic [ref=e171]: Education
+              - generic [ref=e172]: 2025–2027
+          - heading "Cybersecurity BSc — University of Technology" [level=3] [ref=e173]
+          - paragraph [ref=e174]: Reading for a Bachelor of Science in Cybersecurity. Actively engineering tools like PrivCheck (privilege escalation auditor) and CodeLab Tajik to apply academic theory to real-world threats.
+          - generic: "07"
+        - generic [ref=e175]:
+          - generic [ref=e177]:
+            - generic [ref=e178]: ⚡
+            - generic [ref=e180]:
+              - generic [ref=e181]: Milestone
+              - generic [ref=e182]: "2026"
+          - heading "500+ Problems & Open Source Projects" [level=3] [ref=e183]
+          - paragraph [ref=e184]: Solved 500+ algorithmic tasks across major competitive platforms (Codeforces, LeetCode). Shipped several open-source tools and created educational web applications for local student developers.
+          - generic: "08"
+    - generic [ref=e186]:
+      - generic [ref=e187]: 03 / learning and problem solving
+      - heading "Profiles & Platforms" [level=2] [ref=e188]
+      - paragraph [ref=e189]: A directory of systems and competitive nodes where I solve optimization challenges, refine core data structures, and host my open-source projects.
+      - generic [ref=e190]:
+        - link "Codeforces Codeforces AbubakrJ ↗ Status Active Level Div 3+ Active contest participation focusing on combinatorial math, greedy heuristics, dynamic programming, and graph algorithms (up to 1300+ difficulty). Contests DP Graphs 1300" [ref=e191] [cursor=pointer]:
+          - /url: https://codeforces.com/profile/AbubakrJ
+          - generic [ref=e192]:
+            - img "Codeforces" [ref=e194]
+            - generic [ref=e195]:
+              - generic [ref=e196]: Codeforces
+              - text: AbubakrJ
+            - generic [ref=e197]: ↗
+          - generic [ref=e198]:
+            - generic [ref=e199]:
+              - generic [ref=e200]: Status
+              - generic [ref=e201]: Active
+            - generic [ref=e202]:
+              - generic [ref=e203]: Level
+              - generic [ref=e204]: Div 3+
+          - paragraph [ref=e205]: Active contest participation focusing on combinatorial math, greedy heuristics, dynamic programming, and graph algorithms (up to 1300+ difficulty).
+          - generic [ref=e206]:
+            - generic [ref=e207]: Contests
+            - generic [ref=e208]: DP
+            - generic [ref=e209]: Graphs
+            - generic [ref=e210]: "1300"
+        - link "LeetCode LeetCode juraev-exe ↗ Status Active Track Interview Targeted practice of data structures, classical algorithms, and mock interview patterns with regular weekly contest participation. Arrays Trees DFS/BFS" [ref=e211] [cursor=pointer]:
+          - /url: https://leetcode.com/juraev-exe/
+          - generic [ref=e212]:
+            - img "LeetCode" [ref=e214]
+            - generic [ref=e215]:
+              - generic [ref=e216]: LeetCode
+              - text: juraev-exe
+            - generic [ref=e217]: ↗
+          - generic [ref=e218]:
+            - generic [ref=e219]:
+              - generic [ref=e220]: Status
+              - generic [ref=e221]: Active
+            - generic [ref=e222]:
+              - generic [ref=e223]: Track
+              - generic [ref=e224]: Interview
+          - paragraph [ref=e225]: Targeted practice of data structures, classical algorithms, and mock interview patterns with regular weekly contest participation.
+          - generic [ref=e226]:
+            - generic [ref=e227]: Arrays
+            - generic [ref=e228]: Trees
+            - generic [ref=e229]: DFS/BFS
+        - link "AtCoder AtCoder contest profile ↗ Status Learning Focus Precision Focused training on mathematical precision and implementation speed through high-quality structured contests. Implementation Math Binary Search" [ref=e230] [cursor=pointer]:
+          - /url: https://atcoder.jp/
+          - generic [ref=e231]:
+            - img "AtCoder" [ref=e233]
+            - generic [ref=e234]:
+              - generic [ref=e235]: AtCoder
+              - text: contest profile
+            - generic [ref=e236]: ↗
+          - generic [ref=e237]:
+            - generic [ref=e238]:
+              - generic [ref=e239]: Status
+              - generic [ref=e240]: Learning
+            - generic [ref=e241]:
+              - generic [ref=e242]: Focus
+              - generic [ref=e243]: Precision
+          - paragraph [ref=e244]: Focused training on mathematical precision and implementation speed through high-quality structured contests.
+          - generic [ref=e245]:
+            - generic [ref=e246]: Implementation
+            - generic [ref=e247]: Math
+            - generic [ref=e248]: Binary Search
+        - link "HackerRank HackerRank practice profile ↗ Status Active Track Skills Refining foundational computer science paradigms, system administration scripting, database design, and SQL optimization. Algorithms SQL Problem Solving" [ref=e249] [cursor=pointer]:
+          - /url: https://www.hackerrank.com/
+          - generic [ref=e250]:
+            - img "HackerRank" [ref=e252]
+            - generic [ref=e253]:
+              - generic [ref=e254]: HackerRank
+              - text: practice profile
+            - generic [ref=e255]: ↗
+          - generic [ref=e256]:
+            - generic [ref=e257]:
+              - generic [ref=e258]: Status
+              - generic [ref=e259]: Active
+            - generic [ref=e260]:
+              - generic [ref=e261]: Track
+              - generic [ref=e262]: Skills
+          - paragraph [ref=e263]: Refining foundational computer science paradigms, system administration scripting, database design, and SQL optimization.
+          - generic [ref=e264]:
+            - generic [ref=e265]: Algorithms
+            - generic [ref=e266]: SQL
+            - generic [ref=e267]: Problem Solving
+        - link "CodeChef CodeChef contest profile ↗ Status Learning Type Long/Short Simulating high-pressure algorithmic contests to sharpen speed, execution reliability, and space-time optimization. Contests Ad-hoc Number Theory" [ref=e268] [cursor=pointer]:
+          - /url: https://www.codechef.com/
+          - generic [ref=e269]:
+            - img "CodeChef" [ref=e271]
+            - generic [ref=e272]:
+              - generic [ref=e273]: CodeChef
+              - text: contest profile
+            - generic [ref=e274]: ↗
+          - generic [ref=e275]:
+            - generic [ref=e276]:
+              - generic [ref=e277]: Status
+              - generic [ref=e278]: Learning
+            - generic [ref=e279]:
+              - generic [ref=e280]: Type
+              - generic [ref=e281]: Long/Short
+          - paragraph [ref=e282]: Simulating high-pressure algorithmic contests to sharpen speed, execution reliability, and space-time optimization.
+          - generic [ref=e283]:
+            - generic [ref=e284]: Contests
+            - generic [ref=e285]: Ad-hoc
+            - generic [ref=e286]: Number Theory
+        - link "ACMP ACMP juraev ↗ Status Active Focus Math Rigorous academic training focusing on combinatorics, number theory, and implementation of classical computer science theorems. Math Sorting Strings" [ref=e287] [cursor=pointer]:
+          - /url: https://acmp.ru/
+          - generic [ref=e288]:
+            - img "ACMP" [ref=e290]
+            - generic [ref=e291]:
+              - generic [ref=e292]: ACMP
+              - text: juraev
+            - generic [ref=e293]: ↗
+          - generic [ref=e294]:
+            - generic [ref=e295]:
+              - generic [ref=e296]: Status
+              - generic [ref=e297]: Active
+            - generic [ref=e298]:
+              - generic [ref=e299]: Focus
+              - generic [ref=e300]: Math
+          - paragraph [ref=e301]: Rigorous academic training focusing on combinatorics, number theory, and implementation of classical computer science theorems.
+          - generic [ref=e302]:
+            - generic [ref=e303]: Math
+            - generic [ref=e304]: Sorting
+            - generic [ref=e305]: Strings
+        - link "GitHub GitHub juraev-exe ↗ Status Active Type Open Source Publishing production-ready source code, development frameworks, custom developer tools, and competitive template repositories. C++ Python Web" [ref=e306] [cursor=pointer]:
+          - /url: https://github.com/juraev-exe
+          - generic [ref=e307]:
+            - img "GitHub" [ref=e309]
+            - generic [ref=e310]:
+              - generic [ref=e311]: GitHub
+              - text: juraev-exe
+            - generic [ref=e312]: ↗
+          - generic [ref=e313]:
+            - generic [ref=e314]:
+              - generic [ref=e315]: Status
+              - generic [ref=e316]: Active
+            - generic [ref=e317]:
+              - generic [ref=e318]: Type
+              - generic [ref=e319]: Open Source
+          - paragraph [ref=e320]: Publishing production-ready source code, development frameworks, custom developer tools, and competitive template repositories.
+          - generic [ref=e321]:
+            - generic [ref=e322]: C++
+            - generic [ref=e323]: Python
+            - generic [ref=e324]: Web
+    - generic [ref=e326]:
+      - generic [ref=e327]: 04 / my work
+      - heading "Featured Projects" [level=2] [ref=e328]
+      - paragraph [ref=e329]: Some of the practical software and tools I've built to solve real-world problems.
+      - generic [ref=e330]:
+        - generic [ref=e333]:
+          - heading "PrivCheck" [level=3] [ref=e334]
+          - paragraph [ref=e335]: A Windows privilege escalation auditor batch script that scans for 6 critical user privileges, executes dynamic risk evaluation, and generates structured HTML logs with actionable mitigation recipes.
+          - button "Run Audit Simulation" [ref=e337] [cursor=pointer]
+          - generic [ref=e338]:
+            - generic [ref=e339]: Batch
+            - generic [ref=e340]: Security
+            - generic [ref=e341]: Windows
+            - generic [ref=e342]: Kernel
+          - generic [ref=e343]:
+            - link "Read case study →" [ref=e344] [cursor=pointer]:
+              - /url: /projects/privcheck
+              - text: Read case study
+              - generic [ref=e345]: →
+            - link "View on GitHub ↗" [ref=e346] [cursor=pointer]:
+              - /url: https://github.com/juraev-exe/PrivCheck
+              - text: View on GitHub
+              - generic [ref=e347]: ↗
+        - generic [ref=e350]:
+          - heading "CodeLab Tajik" [level=3] [ref=e351]
+          - paragraph [ref=e352]: A localized coding playground and evaluation platform for Tajik students featuring multilingual support, sandboxed code compilation via Judge0 API, and real-time competitive leaderboards.
+          - generic [ref=e353]:
+            - generic [ref=e354]: Next.js
+            - generic [ref=e355]: Tailwind
+            - generic [ref=e356]: PostgreSQL
+            - generic [ref=e357]: Judge0
+          - generic [ref=e358]:
+            - link "Read case study →" [ref=e359] [cursor=pointer]:
+              - /url: /projects/codelab-tajik
+              - text: Read case study
+              - generic [ref=e360]: →
+            - link "View on GitHub ↗" [ref=e361] [cursor=pointer]:
+              - /url: https://github.com/juraev-exe/CodeLab-Tajik
+              - text: View on GitHub
+              - generic [ref=e362]: ↗
+        - generic [ref=e365]:
+          - heading "Social Media Downloader" [level=3] [ref=e366]
+          - paragraph [ref=e367]: A robust full-stack web application designed for high-speed media scraping and formatting across major platforms, utilizing concurrent Python workers and an asynchronous UI.
+          - generic [ref=e368]:
+            - generic [ref=e369]: Python
+            - generic [ref=e370]: Flask
+            - generic [ref=e371]: FFmpeg
+            - generic [ref=e372]: Web
+          - generic [ref=e373]:
+            - link "Read case study →" [ref=e374] [cursor=pointer]:
+              - /url: /projects/social-media-downloader
+              - text: Read case study
+              - generic [ref=e375]: →
+            - link "View on GitHub ↗" [ref=e376] [cursor=pointer]:
+              - /url: https://github.com/juraev-exe/ALL-SOCIAL-MEDIAL-DOWNLOADER
+              - text: View on GitHub
+              - generic [ref=e377]: ↗
+        - generic [ref=e380]:
+          - heading "C++ Solutions Collection" [level=3] [ref=e381]
+          - paragraph [ref=e382]: A organized repository containing optimized competitive programming templates and problem solutions across major contest nodes, categorized by mathematical and algorithmic class.
+          - generic [ref=e383]:
+            - generic [ref=e384]: C++
+            - generic [ref=e385]: Algorithms
+            - generic [ref=e386]: Codeforces
+            - generic [ref=e387]: LeetCode
+          - generic [ref=e388]:
+            - link "Read case study →" [ref=e389] [cursor=pointer]:
+              - /url: /projects/cpp-solutions-collection
+              - text: Read case study
+              - generic [ref=e390]: →
+            - link "View on GitHub ↗" [ref=e391] [cursor=pointer]:
+              - /url: https://github.com/juraev-exe/Basics-projects
+              - text: View on GitHub
+              - generic [ref=e392]: ↗
+        - generic [ref=e395]:
+          - heading "Admin Scripts" [level=3] [ref=e396]
+          - paragraph [ref=e397]: A collection of modular POSIX-compliant scripts automating Linux virtualization, deployment monitoring, package configurations, and recurring cron operations.
+          - generic [ref=e398]:
+            - generic [ref=e399]: Shell
+            - generic [ref=e400]: Linux
+            - generic [ref=e401]: Automation
+            - generic [ref=e402]: DevOps
+          - generic [ref=e403]:
+            - link "Read case study →" [ref=e404] [cursor=pointer]:
+              - /url: /projects/admin-scripts
+              - text: Read case study
+              - generic [ref=e405]: →
+            - link "View on GitHub ↗" [ref=e406] [cursor=pointer]:
+              - /url: https://github.com/juraev-exe/admin-scripts-basics
+              - text: View on GitHub
+              - generic [ref=e407]: ↗
+    - generic [ref=e409]:
+      - generic [ref=e410]: 04.5 / showcase
+      - heading "Visual Gallery" [level=2] [ref=e411]
+      - paragraph [ref=e412]: Interactive sticky card stream highlighting research, cybersecurity audits, and platform architecture.
+      - main [ref=e415]:
+        - generic [ref=e416]:
+          - generic [ref=e417]:
+            - generic [ref=e419] [cursor=pointer]:
+              - img "PrivCheck Security scanner" [ref=e420]
+              - generic [ref=e422]:
+                - generic [ref=e423]: Cybersecurity
+                - generic [ref=e430]:
+                  - heading "PrivCheck Security scanner" [level=3] [ref=e431]
+                  - paragraph [ref=e432]: Windows privilege escalation auditor dashboard & vulnerability analysis
+            - generic [ref=e434] [cursor=pointer]:
+              - img "Algorithmic Shortest Path Visualization" [ref=e435]
+              - generic [ref=e437]:
+                - generic [ref=e438]: Algorithms
+                - generic [ref=e445]:
+                  - heading "Algorithmic Shortest Path Visualization" [level=3] [ref=e446]
+                  - paragraph [ref=e447]: Organic 3D topological shortest-path Dijkstra graph network flow
+            - generic [ref=e449] [cursor=pointer]:
+              - img "Positional Chess & Strategy Matches" [ref=e450]
+              - generic [ref=e452]:
+                - generic [ref=e453]: Cognitive Play
+                - generic [ref=e460]:
+                  - heading "Positional Chess & Strategy Matches" [level=3] [ref=e461]
+                  - paragraph [ref=e462]: Refining spatial pattern recognition, endgames, and fast calculation under clock controls
+          - generic [ref=e463]:
+            - generic [ref=e465] [cursor=pointer]:
+              - img "CodeLab Platform IDE" [ref=e466]
+              - generic [ref=e468]:
+                - generic [ref=e469]: Projects
+                - generic [ref=e476]:
+                  - heading "CodeLab Platform IDE" [level=3] [ref=e477]
+                  - paragraph [ref=e478]: Browser-based code compilation workspace tailored for competitive programming
+            - generic [ref=e480] [cursor=pointer]:
+              - img "Trekking across Tajikistan Mountains" [ref=e481]
+              - generic [ref=e483]:
+                - generic [ref=e484]: Life & Trekking
+                - generic [ref=e491]:
+                  - heading "Trekking across Tajikistan Mountains" [level=3] [ref=e492]
+                  - paragraph [ref=e493]: Exploring high-altitude nature routes and alpine ridges to reboot analytical thinking
+            - generic [ref=e495] [cursor=pointer]:
+              - img "Continuous Systems Research Labs" [ref=e496]
+              - generic [ref=e498]:
+                - generic [ref=e499]: Life & Research
+                - generic [ref=e506]:
+                  - heading "Continuous Systems Research Labs" [level=3] [ref=e507]
+                  - paragraph [ref=e508]: Developing administrative scripting routines and sandboxed OS kernel security labs
+    - generic [ref=e510]:
+      - generic [ref=e511]: 05 / skills
+      - heading "Core Skills" [level=2] [ref=e512]
+      - generic [ref=e513]:
+        - generic [ref=e514]:
+          - heading "Core Skills & Tools" [level=3] [ref=e515]
+          - paragraph [ref=e516]: My primary programming languages, developer runtimes, AI workflows, and creative software.
+          - generic [ref=e517]:
+            - generic [ref=e518]:
+              - generic [ref=e523]:
+                - generic [ref=e524]: C++
+                - generic [ref=e525]: Expert
+              - generic [ref=e527]:
+                - generic [ref=e528]: Fluency
+                - generic [ref=e529]: 95%
+            - generic [ref=e532]:
+              - generic [ref=e537]:
+                - generic [ref=e538]: Python
+                - generic [ref=e539]: Advanced
+              - generic [ref=e541]:
+                - generic [ref=e542]: Fluency
+                - generic [ref=e543]: 85%
+            - generic [ref=e546]:
+              - generic [ref=e551]:
+                - generic [ref=e552]: TypeScript
+                - generic [ref=e553]: Advanced
+              - generic [ref=e555]:
+                - generic [ref=e556]: Fluency
+                - generic [ref=e557]: 85%
+            - generic [ref=e560]:
+              - generic [ref=e565]:
+                - generic [ref=e566]: Node.js
+                - generic [ref=e567]: Proficient
+              - generic [ref=e569]:
+                - generic [ref=e570]: Fluency
+                - generic [ref=e571]: 80%
+            - generic [ref=e574]:
+              - generic [ref=e579]:
+                - generic [ref=e580]: Using AI
+                - generic [ref=e581]: Advanced
+              - generic [ref=e583]:
+                - generic [ref=e584]: Fluency
+                - generic [ref=e585]: 90%
+            - generic [ref=e588]:
+              - generic [ref=e593]:
+                - generic [ref=e594]: Adobe
+                - generic [ref=e595]: Proficient
+              - generic [ref=e597]:
+                - generic [ref=e598]: Fluency
+                - generic [ref=e599]: 78%
+        - generic [ref=e602]:
+          - heading "Algorithms & Data Structures" [level=3] [ref=e603]
+          - paragraph [ref=e604]: I continuously refine these fundamentals through contest problem-solving, algorithmic optimization, and design.
+          - generic [ref=e605]:
+            - generic [ref=e607]:
+              - generic [ref=e608]: Dynamic Programming
+              - generic [ref=e609]: 55%
+            - generic [ref=e613]:
+              - generic [ref=e614]: Graph Algorithms
+              - generic [ref=e615]: 75%
+            - generic [ref=e619]:
+              - generic [ref=e620]: Binary Search
+              - generic [ref=e621]: 88%
+            - generic [ref=e625]:
+              - generic [ref=e626]: Number Theory
+              - generic [ref=e627]: 70%
+            - generic [ref=e631]:
+              - generic [ref=e632]: Greedy Algorithms
+              - generic [ref=e633]: 85%
+      - generic [ref=e636]:
+        - generic [ref=e637]:
+          - generic [ref=e638]: DEVELOPER STACK
+          - heading "Tools & Ecosystem" [level=3] [ref=e641]
+          - paragraph [ref=e642]: Core environments, deployment infrastructure, and productivity workflows powering my development pipeline.
+        - generic [ref=e643]:
+          - generic [ref=e644]:
+            - generic [ref=e645]:
+              - heading "Systems & DevOps" [level=4] [ref=e651]
+              - generic [ref=e652]: 5 Tools
+            - generic [ref=e653]:
+              - generic [ref=e654]: Linux
+              - generic [ref=e659]: Docker
+              - generic [ref=e664]: Bash
+              - generic [ref=e669]: Networking
+              - generic [ref=e677]: Windows
+          - generic [ref=e682]:
+            - generic [ref=e683]:
+              - heading "Web & Backend" [level=4] [ref=e689]
+              - generic [ref=e690]: 4 Technologies
+            - generic [ref=e691]:
+              - generic [ref=e692]: HTML/CSS
+              - generic [ref=e699]: Node.js
+              - generic [ref=e705]: Flask
+              - generic [ref=e710]: MongoDB
+          - generic [ref=e715]:
+            - generic [ref=e716]:
+              - heading "Tools & Workflow" [level=4] [ref=e721]
+              - generic [ref=e722]: 6 Utilities
+            - generic [ref=e723]:
+              - generic [ref=e724]: Git
+              - generic [ref=e733]: GitHub
+              - generic [ref=e738]: VS Code
+              - generic [ref=e743]: CMake
+              - generic [ref=e748]: STL
+              - generic [ref=e756]: GDB
+    - generic [ref=e763]:
+      - generic [ref=e764]: 06 / hobbies
+      - heading "Outside the Sandbox" [level=2] [ref=e765]
+      - paragraph [ref=e766]: Exploring my primary interests and creative outlets when offline and away from the algorithmic sandbox.
+      - generic [ref=e767]:
+        - generic [ref=e770]:
+          - generic [ref=e771]:
+            - generic [ref=e772]: ♟️
+            - generic [ref=e773]: Tactics
+          - heading "Chess & Tactics" [level=3] [ref=e774]
+          - paragraph [ref=e775]: Sharpening spatial pattern recognition, positional strategy, and tactical calculation under strict time limits. I study classical endgames and play rapid tournaments.
+        - generic [ref=e778]:
+          - generic [ref=e779]:
+            - generic [ref=e780]: 🛡️
+            - generic [ref=e781]: Audits
+          - heading "CTFs & Security" [level=3] [ref=e782]
+          - paragraph [ref=e783]: Deconstructing binary payloads and participating in competitive jeopardy-style CTFs to audit system logic anomalies.
+        - generic [ref=e786]:
+          - generic [ref=e787]:
+            - generic [ref=e788]: ✍️
+            - generic [ref=e789]: Blogging
+          - heading "Technical Writing" [level=3] [ref=e790]
+          - paragraph [ref=e791]: Authoring clean technical documentation, breaking down complex mathematical proofs, and detailing algorithmic optimizations to foster open education.
+        - generic [ref=e794]:
+          - generic [ref=e795]:
+            - generic [ref=e796]: ⛰️
+            - generic [ref=e797]: Explore
+          - heading "Outdoor Exploration" [level=3] [ref=e798]
+          - paragraph [ref=e799]: Excursion and trekking across the high-altitude trails of Tajikistan. Disconnecting from host terminals to reset logic circuits and refresh problem-solving perspectives.
+    - generic [ref=e802]:
+      - generic [ref=e803]:
+        - generic [ref=e804]: 07 / contact
+        - heading "Contact Me" [level=2] [ref=e805]
+        - paragraph [ref=e806]: Have a hard problem? Want to talk algorithms?I'm always up for a good discussion.
+        - generic [ref=e807]:
+          - link "Telegram" [ref=e808] [cursor=pointer]:
+            - /url: https://t.me/juraev_exe
+          - link "Instagram" [ref=e811] [cursor=pointer]:
+            - /url: https://instagram.com/juraev_exe
+          - link "Gmail" [ref=e814] [cursor=pointer]:
+            - /url: mailto:juraev.exe@gmail.com
+      - generic [ref=e818]:
+        - generic [ref=e819]:
+          - generic [ref=e820]: Name
+          - textbox "Name" [ref=e821]
+        - generic [ref=e822]:
+          - generic [ref=e823]: Email
+          - textbox "Email" [ref=e824]
+        - generic [ref=e825]:
+          - generic [ref=e826]: Subject
+          - textbox "Subject" [ref=e827]
+        - generic [ref=e828]:
+          - generic [ref=e829]: Message
+          - textbox "Message" [ref=e830]
+        - status [ref=e831]
+        - button "Send Message" [ref=e832] [cursor=pointer]
+  - contentinfo [ref=e837]:
+    - generic [ref=e838]: <juraev.exe/>
+    - paragraph [ref=e839]: Built with ❤️ & juraev.exe · 2026
+    - paragraph [ref=e840]: © 2026 All rights reserved.
