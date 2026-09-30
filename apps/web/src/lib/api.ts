@@ -12,7 +12,24 @@ function getApiBase(): string {
 
 export async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   const base = getApiBase();
-  const url = `${base}${path}`;
+
+  // Normalize parameterized routes for serverless compatibility without square brackets
+  let normalizedPath = path;
+  const syncMatch = path.match(/^\/api\/students\/([^/]+)\/sync$/);
+  if (syncMatch) {
+    normalizedPath = `/api/students/sync?id=${encodeURIComponent(syncMatch[1])}`;
+  } else {
+    const studentMatch = path.match(/^\/api\/students\/([^/?]+)$/);
+    if (studentMatch && !studentMatch[1].includes('?')) {
+      normalizedPath = `/api/students/detail?id=${encodeURIComponent(studentMatch[1])}`;
+    }
+    const cfUserMatch = path.match(/^\/api\/codeforces\/user\/([^/?]+)$/);
+    if (cfUserMatch && !cfUserMatch[1].includes('?')) {
+      normalizedPath = `/api/codeforces/user?handle=${encodeURIComponent(cfUserMatch[1])}`;
+    }
+  }
+
+  const url = `${base}${normalizedPath}`;
 
   let authHeader: Record<string, string> = {};
   if (typeof window !== 'undefined') {

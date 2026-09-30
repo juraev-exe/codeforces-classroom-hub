@@ -359,6 +359,7 @@ export const serverStore = {
     let solvedCount = 58;
     let totalContests = 1;
     let avatar = 'https://userpic.codeforces.org/1970880/title/66afacde68a45195.jpg';
+    let teacherSubmissions: any[] = [];
 
     try {
       const users = await fetchCF<any[]>('user.info', { handles: handle });
@@ -378,9 +379,71 @@ export const serverStore = {
         }
       });
       solvedCount = solved.size;
+
+      teacherSubmissions = (subs || []).slice(0, 40).map((s: any) => ({
+        id: String(s.id),
+        studentId: '46427f87-007e-4327-bca3-e9e9b3056a9c',
+        studentHandle: 'AbubakrJ',
+        studentName: 'Abubakr Juraev',
+        cfSubmissionId: s.id,
+        contestId: s.contestId || s.problem?.contestId || null,
+        problemIndex: s.problem?.index || 'A',
+        problemName: s.problem?.name || 'Problem',
+        problemRating: s.problem?.rating || null,
+        tags: s.problem?.tags || [],
+        verdict: s.verdict || 'UNKNOWN',
+        language: s.programmingLanguage || 'C++',
+        submittedAt: s.creationTimeSeconds
+          ? new Date(s.creationTimeSeconds * 1000).toISOString()
+          : new Date().toISOString(),
+      }));
     } catch {
       // Fallback to defaults
     }
+
+    // Collect submissions from all students
+    const allStudentSubs: any[] = [];
+    for (const st of memoryStore.students) {
+      if (Array.isArray(st.submissions)) {
+        for (const s of st.submissions) {
+          allStudentSubs.push({
+            id: String(s.id || s.cfSubmissionId),
+            studentId: st.id,
+            studentHandle: st.codeforcesHandle,
+            studentName: st.name,
+            cfSubmissionId: s.cfSubmissionId || s.id,
+            contestId: s.contestId,
+            problemIndex: s.index || s.problemIndex || 'A',
+            problemName: s.problemName || 'Problem',
+            problemRating: s.rating || s.problemRating || null,
+            tags: Array.isArray(s.tags) ? s.tags : [],
+            verdict: s.verdict || 'OK',
+            language: s.language || 'C++',
+            submittedAt: s.submittedAt || new Date().toISOString(),
+          });
+        }
+      }
+    }
+
+    const recentActivity = [...allStudentSubs, ...teacherSubmissions]
+      .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+      .slice(0, 50);
+
+    const analytics = this.getAnalytics();
+    const leaderboard = this.getLeaderboard();
+    const upcomingContests = await this.getUpcomingContests();
+
+    const classSummary = {
+      ...analytics,
+      recentActivity,
+      mostImprovedStudents: leaderboard.slice(0, 5).map((l: any) => ({
+        studentId: l.studentId,
+        name: l.name,
+        handle: l.handle,
+        ratingChange: l.recentRatingChange || 0,
+        currentRating: l.rating,
+      })),
+    };
 
     return {
       teacher: {
@@ -395,6 +458,8 @@ export const serverStore = {
         totalContests,
         avatar,
         ratingHistory: [],
+        recentSubmissions: teacherSubmissions,
+        tagStats: {},
       },
       classroom: {
         id: 'class-algorithms-2026',
@@ -403,6 +468,9 @@ export const serverStore = {
         totalStudents: memoryStore.students.length,
         activeStudents: memoryStore.students.filter((s) => s.active).length,
       },
+      classSummary,
+      leaderboard,
+      upcomingContests,
     };
   },
 
@@ -461,7 +529,8 @@ export const serverStore = {
         .sort((a: any, b: any) => a.startTimeSeconds - b.startTimeSeconds)
         .slice(0, 10)
         .map((c: any) => ({
-          id: c.id,
+          id: String(c.id),
+          codeforcesContestId: c.id,
           name: c.name,
           type: c.type,
           phase: c.phase,

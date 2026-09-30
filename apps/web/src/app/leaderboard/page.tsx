@@ -12,8 +12,14 @@ import {
   Crown,
   Medal,
   TrendingUp,
+  TrendingDown,
   Code2,
   Calendar,
+  User,
+  Zap,
+  GraduationCap,
+  CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { getRankColor, getRankBadgeClass } from '@/lib/cf-utils';
@@ -36,8 +42,8 @@ function LeaderboardContent() {
         fetchApi<LeaderboardEntry[]>(url),
         fetchApi<Classroom[]>('/api/classes'),
       ]);
-      setLeaderboard(lbData);
-      setClasses(classesData);
+      setLeaderboard(Array.isArray(lbData) ? lbData : []);
+      setClasses(Array.isArray(classesData) ? classesData : []);
     } catch (err: any) {
       console.error('Error loading leaderboard:', err);
     } finally {
@@ -219,16 +225,48 @@ function LeaderboardContent() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/[0.03] border-b border-white/[0.06] text-[11px] text-zinc-400 uppercase tracking-wider">
+              <thead className="bg-white/[0.03] border-b border-white/[0.06] text-[11px] text-zinc-400 uppercase tracking-wider font-semibold">
                 <tr>
-                  <th className="py-3.5 px-5">Rank</th>
-                  <th className="py-3.5 px-4">Student</th>
-                  <th className="py-3.5 px-4">Class</th>
-                  <th className="py-3.5 px-4">Rating</th>
-                  <th className="py-3.5 px-4">Rank Tier</th>
-                  <th className="py-3.5 px-4">Solved</th>
-                  <th className="py-3.5 px-4">Contests</th>
-                  <th className="py-3.5 px-5 text-right">Contest Delta</th>
+                  <th className="py-3.5 px-5">
+                    <span className="flex items-center gap-1.5">
+                      <Crown className="w-3.5 h-3.5 text-amber-400" /> Rank
+                    </span>
+                  </th>
+                  <th className="py-3.5 px-4">
+                    <span className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-blue-400" /> Student
+                    </span>
+                  </th>
+                  <th className="py-3.5 px-4">
+                    <span className="flex items-center gap-1.5">
+                      <GraduationCap className="w-3.5 h-3.5 text-indigo-400" /> Class
+                    </span>
+                  </th>
+                  <th className="py-3.5 px-4">
+                    <span className="flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-amber-400" /> Rating
+                    </span>
+                  </th>
+                  <th className="py-3.5 px-4">
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Rank Tier
+                    </span>
+                  </th>
+                  <th className="py-3.5 px-4">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-purple-400" /> Solved
+                    </span>
+                  </th>
+                  <th className="py-3.5 px-4">
+                    <span className="flex items-center gap-1.5">
+                      <Trophy className="w-3.5 h-3.5 text-amber-400" /> Contests
+                    </span>
+                  </th>
+                  <th className="py-3.5 px-5 text-right">
+                    <span className="flex items-center justify-end gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5 text-cyan-400" /> Contest Delta
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">

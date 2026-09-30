@@ -11,10 +11,30 @@ import {
   AlertCircle,
   Radio,
   Timer,
+  Trophy,
+  Hourglass,
+  Zap,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { formatDuration } from '@/lib/cf-utils';
 import type { ContestRecord } from '@cf-hub/types';
+
+function formatSafeDate(dateStr?: string | number | null) {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '—';
+  }
+}
 
 export default function ContestsPage() {
   const [upcoming, setUpcoming] = useState<ContestRecord[]>([]);
@@ -28,11 +48,11 @@ export default function ContestsPage() {
     try {
       setLoading(true);
       const [upData, allData] = await Promise.all([
-        fetchApi<ContestRecord[]>('/api/contests/upcoming'),
-        fetchApi<ContestRecord[]>('/api/contests?limit=40'),
+        fetchApi<ContestRecord[]>('/api/contests/upcoming').catch(() => []),
+        fetchApi<ContestRecord[]>('/api/contests?limit=40').catch(() => []),
       ]);
-      setUpcoming(upData);
-      setAllContests(allData);
+      setUpcoming(Array.isArray(upData) ? upData : []);
+      setAllContests(Array.isArray(allData) ? allData : []);
     } catch (err: any) {
       console.error('Error loading contests:', err);
     } finally {
@@ -109,23 +129,25 @@ export default function ContestsPage() {
         <div className="glass-panel p-1 rounded-2xl border border-white/[0.08] flex items-center gap-1">
           <button
             onClick={() => setActiveTab('upcoming')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
               activeTab === 'upcoming'
                 ? 'bg-blue-600/25 text-blue-300 border border-blue-500/40 shadow-sm'
                 : 'text-zinc-400 hover:text-white'
             }`}
           >
-            Upcoming Rounds ({upcoming.length})
+            <Calendar className="w-3.5 h-3.5 text-blue-400" />
+            <span>Upcoming Rounds ({upcoming.length})</span>
           </button>
           <button
             onClick={() => setActiveTab('recent')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
               activeTab === 'recent'
                 ? 'bg-blue-600/25 text-blue-300 border border-blue-500/40 shadow-sm'
                 : 'text-zinc-400 hover:text-white'
             }`}
           >
-            Past & Completed Rounds ({allContests.length})
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Past & Completed Rounds ({allContests.length})</span>
           </button>
         </div>
       </div>
@@ -161,16 +183,19 @@ export default function ContestsPage() {
                         isLive
                           ? 'bg-rose-500/15 text-rose-300 border-rose-500/30 animate-pulse flex items-center gap-1.5'
                           : isUpcoming
-                          ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                          : 'bg-white/[0.04] text-zinc-400 border-white/[0.06]'
+                          ? 'bg-blue-500/15 text-blue-300 border-blue-500/30 flex items-center gap-1'
+                          : 'bg-white/[0.04] text-zinc-400 border-white/[0.06] flex items-center gap-1'
                       }`}
                     >
                       {isLive && <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>}
-                      {isLive ? 'LIVE NOW' : isUpcoming ? 'UPCOMING' : 'FINISHED'}
+                      {isUpcoming && <Zap className="w-3 h-3 text-blue-400" />}
+                      {!isLive && !isUpcoming && <CheckCircle2 className="w-3 h-3 text-zinc-500" />}
+                      <span>{isLive ? 'LIVE NOW' : isUpcoming ? 'UPCOMING' : 'FINISHED'}</span>
                     </span>
 
-                    <span className="text-[11px] text-zinc-500 font-mono">
-                      Round #{c.codeforcesContestId}
+                    <span className="text-[11px] text-zinc-500 font-mono flex items-center gap-1">
+                      <Trophy className="w-3 h-3 text-zinc-500" />
+                      Round #{c.codeforcesContestId || c.id}
                     </span>
                   </div>
 
@@ -180,11 +205,11 @@ export default function ContestsPage() {
 
                   <div className="space-y-2 mt-4 text-xs text-zinc-400">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-                      <span>{startDate.toLocaleString()}</span>
+                      <Calendar className="w-3.5 h-3.5 text-blue-400" />
+                      <span>{formatSafeDate(c.startTime)}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                      <Hourglass className="w-3.5 h-3.5 text-indigo-400" />
                       <span>Duration: {formatDuration(c.durationSeconds)}</span>
                     </div>
                   </div>
@@ -192,17 +217,17 @@ export default function ContestsPage() {
 
                 <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3">
                   <a
-                    href={`https://codeforces.com/contestRegistration/${c.codeforcesContestId}`}
+                    href={`https://codeforces.com/contestRegistration/${c.codeforcesContestId || c.id}`}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 font-semibold transition"
                   >
-                    Open on Codeforces
+                    <span>Open on Codeforces</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
 
                   {isUpcoming && (
-                    <span className="text-[11px] text-zinc-500 flex items-center gap-1 font-medium">
+                    <span className="text-[11px] text-zinc-400 flex items-center gap-1 font-medium">
                       <Bell className="w-3 h-3 text-amber-400" /> Telegram alert enabled
                     </span>
                   )}
