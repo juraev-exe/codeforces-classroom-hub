@@ -64,7 +64,7 @@ export async function POST(req: Request) {
         `👋 *Welcome to Codeforces Classroom Hub Bot!*\n` +
           `_Managed by Abubakr Juraev (@AbubakrJ)_\n\n` +
           `Students can join the classroom instantly:\n` +
-          `• \`/join <cf_handle> [Full Name]\` - Enroll in classroom\n` +
+          `• \`/add <cf_handle> [Name]\` - Add student to classroom\n• \`/join <cf_handle> [Name]\` - Self-enroll in classroom\n` +
           `• \`/link\` - Get the 1-click web join link\n\n` +
           `Classroom & Stats Commands:\n` +
           `• \`/my\` - View teacher profile & stats\n` +
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       await sendTelegramMessage(
         chatId,
         `📚 *Codeforces Classroom Hub Guide*\n\n` +
-          `• \`/join <handle> [name]\` : Enroll directly in the classroom\n` +
+          `• \`/add <handle> [name]\` : Add a student to the classroom\n• \`/join <handle> [name]\` : Self-enroll in the classroom\n` +
           `• \`/link\` : Shareable student join invite URL\n` +
           `• \`/my\` : Teacher Abubakr Juraev profile & live stats\n` +
           `• \`/class\` : Class overview (avg rating, total solved, students)\n` +
@@ -318,22 +318,42 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    if (command === '/join') {
-      if (args.length === 0) {
+    // Shared Enrollment logic for /add, /addstudent, /join, /enroll
+    const isAddCommand = ['/add', '/addstudent', '/join', '/enroll'].includes(command);
+    const isProfileUrl = text.includes('codeforces.com/profile/');
+
+    if (isAddCommand || isProfileUrl) {
+      let handleCandidate = args[0] || '';
+      let customNameCandidate = args.slice(1).join(' ').trim();
+
+      if (isProfileUrl && !isAddCommand) {
+        const urlMatch = text.match(/codeforces\.com\/profile\/([a-zA-Z0-9_\-\.]+)/i);
+        if (urlMatch) {
+          handleCandidate = urlMatch[1];
+        }
+      }
+
+      const urlMatch = handleCandidate.match(/codeforces\.com\/profile\/([a-zA-Z0-9_\-\.]+)/i);
+      if (urlMatch) {
+        handleCandidate = urlMatch[1];
+      }
+      const rawHandle = handleCandidate.replace('@', '').trim();
+
+      if (!rawHandle) {
         await sendTelegramMessage(
           chatId,
-          `⚠️ *How to enroll:*\n` +
-            `Send: \`/join <cf_handle> [Full Name]\`\n\n` +
-            `*Example:*\n` +
-            `\`/join tourist Gennady Korotkevich\``
+          `👤 *How to add a student via Telegram:*\n\n` +
+            `Send: \`/add <cf_handle> [Full Name]\`\n\n` +
+            `*Examples:*\n` +
+            `• \`/add tourist\`\n` +
+            `• \`/add tourist Gennady Korotkevich\`\n` +
+            `• Or simply paste their link: \`https://codeforces.com/profile/tourist\`\n\n` +
+            `The bot will automatically verify the handle on Codeforces, fetch their rating, photo, and solved problems, and add them directly to your classroom!`
         );
         return NextResponse.json({ ok: true });
       }
 
-      const rawHandle = args[0].replace('@', '').trim();
-      const rawName = args.slice(1).join(' ').trim();
-      const name = rawName || rawHandle;
-
+      // Check if student already enrolled
       const existingStudents = serverStore.getStudents();
       const alreadyJoined = existingStudents.find(
         (s) => s.codeforcesHandle.toLowerCase() === rawHandle.toLowerCase()
@@ -342,44 +362,66 @@ export async function POST(req: Request) {
       if (alreadyJoined) {
         await sendTelegramMessage(
           chatId,
-          `ℹ️ Handle *@${rawHandle}* is already enrolled in the classroom!\n` +
-            `Rating: *${alreadyJoined.stats?.rating || 'Unrated'}* | Solved: *${alreadyJoined.stats?.solvedCount || 0}*\n\n` +
-            `[View Profile](${WEB_URL}/students/${alreadyJoined.id})`
+          `ℹ️ *@${rawHandle}* (${alreadyJoined.name}) is already enrolled!\n\n` +
+            `⭐ Rating: *${alreadyJoined.stats?.rating || 'Unrated'}* (${alreadyJoined.stats?.rank || 'unrated'})\n` +
+            `✅ Solved: *${alreadyJoined.stats?.solvedCount || 0}* problems\n\n` +
+            `🔗 [View Student Profile](${WEB_URL}/students/${alreadyJoined.id})`
         );
         return NextResponse.json({ ok: true });
       }
 
+      await sendTelegramMessage(chatId, `⏳ Verifying handle \`@${rawHandle}\` on Codeforces and pulling submissions...`);
+
       try {
+        const users = await fetchCF<any[]>('user.info', { handles: rawHandle });
+        if (!users || users.length === 0) {
+          await sendTelegramMessage(chatId, `❌ Codeforces user \`@${rawHandle}\` not found. Please double-check the handle spelling.`);
+          return NextResponse.json({ ok: true });
+        }
+
+        const u = users[0];
+        let studentName = customNameCandidate;
+        if (!studentName) {
+          if (u.firstName && u.lastName) {
+            studentName = `${u.firstName} ${u.lastName}`.trim();
+          } else if (u.firstName) {
+            studentName = u.firstName.trim();
+          } else {
+            studentName = u.handle;
+          }
+        }
+
         const classes = serverStore.getClassrooms();
         const targetClass = classes[0];
 
         const newStudent = await serverStore.addStudent({
-          name,
-          codeforcesHandle: rawHandle,
+          name: studentName,
+          codeforcesHandle: u.handle,
           classId: targetClass.id,
           group: 'Standard',
         });
 
         const stats = newStudent.stats;
-        const rating = stats?.rating || 'Unrated';
+        const rating = stats?.rating || 0;
         const rank = stats?.rank || 'unrated';
         const maxRating = stats?.maxRating || 'N/A';
         const solved = stats?.solvedCount || 0;
 
         await sendTelegramMessage(
           chatId,
-          `🎉 *Successfully Enrolled in Classroom Hub!*\n\n` +
+          `🎉 *Successfully Added Student to Classroom!*\n\n` +
             `👤 *Name:* ${newStudent.name}\n` +
             `🎯 *Codeforces Handle:* @${newStudent.codeforcesHandle}\n` +
             `⭐ *Rating:* ${rating} (${rank})\n` +
             `🏆 *Max Rating:* ${maxRating}\n` +
             `✅ *Problems Solved:* ${solved}\n` +
             `🏫 *Classroom:* ${targetClass.name}\n\n` +
-            `Your daily solves and contest performances are now actively tracked!\n` +
+            `Submissions and rating are now active in the telemetry cockpit!\n\n` +
+            `🔗 [Open Student Profile](${WEB_URL}/students/${newStudent.id})\n` +
             `🏆 [View Leaderboard](${WEB_URL}/leaderboard)`
         );
       } catch (err: any) {
-        await sendTelegramMessage(chatId, `❌ Enrollment error: ${err.message}`);
+        await sendTelegramMessage(chatId, `❌ Failed to add student: ${err.message}`);
       }
       return NextResponse.json({ ok: true });
     }
