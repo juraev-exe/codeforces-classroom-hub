@@ -16,8 +16,8 @@ import type {
 } from '@cf-hub/types';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
-const apiUrl = process.env.API_URL || 'http://localhost:4000';
-const webUrl = process.env.WEB_URL || 'http://localhost:3000';
+const apiUrl = (process.env.API_URL || 'https://codeforces-classroom-hub.vercel.app').replace(/\/+$/, '');
+const webUrl = (process.env.WEB_URL || 'https://codeforces-classroom-hub.vercel.app').replace(/\/+$/, '');
 const adminIds = (process.env.TELEGRAM_ADMIN_IDS || '')
   .split(',')
   .map((s) => s.trim())
@@ -29,9 +29,26 @@ if (!token) {
 
 const bot = new Telegraf(token || 'dummy_token');
 
+function normalizeEndpoint(endpoint: string): string {
+  const syncMatch = endpoint.match(/^\/api\/students\/([^/]+)\/sync$/);
+  if (syncMatch) {
+    return `/api/students/sync?id=${encodeURIComponent(syncMatch[1])}`;
+  }
+  const studentMatch = endpoint.match(/^\/api\/students\/([^/?]+)$/);
+  if (studentMatch && !studentMatch[1].includes('?')) {
+    return `/api/students/detail?id=${encodeURIComponent(studentMatch[1])}`;
+  }
+  const cfUserMatch = endpoint.match(/^\/api\/codeforces\/user\/([^/?]+)$/);
+  if (cfUserMatch && !cfUserMatch[1].includes('?')) {
+    return `/api/codeforces/user?handle=${encodeURIComponent(cfUserMatch[1])}`;
+  }
+  return endpoint;
+}
+
 // Helper fetch from API
 async function apiGet<T>(endpoint: string): Promise<T> {
-  const res = await fetch(`${apiUrl}${endpoint}`);
+  const norm = normalizeEndpoint(endpoint);
+  const res = await fetch(`${apiUrl}${norm}`);
   if (!res.ok) {
     const errorText = await res.text();
     let parsed: any;
@@ -44,7 +61,8 @@ async function apiGet<T>(endpoint: string): Promise<T> {
 }
 
 async function apiPost<T>(endpoint: string, body: any): Promise<T> {
-  const res = await fetch(`${apiUrl}${endpoint}`, {
+  const norm = normalizeEndpoint(endpoint);
+  const res = await fetch(`${apiUrl}${norm}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
