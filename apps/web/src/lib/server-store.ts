@@ -354,11 +354,19 @@ export const serverStore = {
   },
 
   async getTeacherDashboard(): Promise<any> {
-    // Auto-sync all students to pull fresh submissions from Codeforces
+    // Auto-sync only students who have no cached submissions (first load)
+    // Uses a 5s timeout per student to avoid Vercel serverless timeout
     const allStudents = this.getStudents();
-    await Promise.all(
-      allStudents.map((s) => this.syncStudent(s.id).catch(() => null))
+    const unsyncedStudents = allStudents.filter(
+      (s) => !s.submissions || s.submissions.length === 0
     );
+    if (unsyncedStudents.length > 0) {
+      const withTimeout = (promise: Promise<any>, ms: number) =>
+        Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej('timeout'), ms))]);
+      await Promise.all(
+        unsyncedStudents.map((s) => withTimeout(this.syncStudent(s.id), 5000).catch(() => null))
+      );
+    }
 
     const handle = 'AbubakrJ';
     let rating = 693;
