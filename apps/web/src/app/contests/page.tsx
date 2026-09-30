@@ -38,7 +38,7 @@ function formatSafeDate(dateStr?: string | number | null) {
 
 export default function ContestsPage() {
   const [upcoming, setUpcoming] = useState<ContestRecord[]>([]);
-  const [allContests, setAllContests] = useState<ContestRecord[]>([]);
+  const [pastContests, setPastContests] = useState<ContestRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'recent'>('upcoming');
@@ -47,12 +47,12 @@ export default function ContestsPage() {
   async function loadContests() {
     try {
       setLoading(true);
-      const [upData, allData] = await Promise.all([
+      const [upData, pastData] = await Promise.all([
         fetchApi<ContestRecord[]>('/api/contests/upcoming').catch(() => []),
-        fetchApi<ContestRecord[]>('/api/contests?limit=40').catch(() => []),
+        fetchApi<ContestRecord[]>('/api/contests?phase=past&limit=40').catch(() => []),
       ]);
       setUpcoming(Array.isArray(upData) ? upData : []);
-      setAllContests(Array.isArray(allData) ? allData : []);
+      setPastContests(Array.isArray(pastData) ? pastData : []);
     } catch (err: any) {
       console.error('Error loading contests:', err);
     } finally {
@@ -79,7 +79,7 @@ export default function ContestsPage() {
     }
   }
 
-  const displayedContests = activeTab === 'upcoming' ? upcoming : allContests;
+  const displayedContests = activeTab === 'upcoming' ? upcoming : pastContests;
 
   return (
     <div className="space-y-7">
@@ -147,7 +147,7 @@ export default function ContestsPage() {
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Past & Completed Rounds ({allContests.length})</span>
+            <span>Past & Completed Rounds ({pastContests.length})</span>
           </button>
         </div>
       </div>
@@ -217,12 +217,16 @@ export default function ContestsPage() {
 
                 <div className="pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3">
                   <a
-                    href={`https://codeforces.com/contestRegistration/${c.codeforcesContestId || c.id}`}
+                    href={
+                      isUpcoming
+                        ? `https://codeforces.com/contestRegistration/${c.codeforcesContestId || c.id}`
+                        : `https://codeforces.com/contest/${c.codeforcesContestId || c.id}`
+                    }
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 font-semibold transition"
                   >
-                    <span>Open on Codeforces</span>
+                    <span>{isUpcoming ? 'Register on Codeforces' : 'View Problems & Standings'}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
 

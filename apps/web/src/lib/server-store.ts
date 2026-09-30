@@ -687,10 +687,32 @@ export const serverStore = {
   async getUpcomingContests(): Promise<any[]> {
     try {
       const all = await fetchCF<any[]>('contest.list', { gym: 'false' });
-      return all
-        .filter((c: any) => c.phase === 'BEFORE')
+      return (all || [])
+        .filter((c: any) => c.phase === 'BEFORE' || c.phase === 'CODING')
         .sort((a: any, b: any) => a.startTimeSeconds - b.startTimeSeconds)
         .slice(0, 10)
+        .map((c: any) => ({
+          id: String(c.id),
+          codeforcesContestId: c.id,
+          name: c.name,
+          type: c.type,
+          phase: c.phase,
+          durationSeconds: c.durationSeconds,
+          startTime: new Date(c.startTimeSeconds * 1000).toISOString(),
+          relativeTimeSeconds: c.relativeTimeSeconds,
+        }));
+    } catch {
+      return [];
+    }
+  },
+
+  async getPastContests(limit: number = 40): Promise<any[]> {
+    try {
+      const all = await fetchCF<any[]>('contest.list', { gym: 'false' });
+      return (all || [])
+        .filter((c: any) => c.phase === 'FINISHED')
+        .sort((a: any, b: any) => b.startTimeSeconds - a.startTimeSeconds)
+        .slice(0, limit)
         .map((c: any) => ({
           id: String(c.id),
           codeforcesContestId: c.id,
