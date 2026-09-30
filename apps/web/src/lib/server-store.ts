@@ -21,6 +21,7 @@ export interface StudentStatsData {
   contestCount: number;
   avatar: string;
   lastSyncedAt: string;
+  lastOnlineTimeSeconds?: number;
 }
 
 export interface StudentData {
@@ -259,6 +260,7 @@ export const serverStore = {
         solvedCount,
         contestCount,
         avatar: cfUser.titlePhoto || cfUser.avatar || 'https://userpic.codeforces.org/no-avatar.jpg',
+          lastOnlineTimeSeconds: cfUser.lastOnlineTimeSeconds || 0,
         lastSyncedAt: new Date().toISOString(),
       },
       submissions: submissions.slice(0, 50).map((s) => ({
@@ -310,6 +312,7 @@ export const serverStore = {
           student.stats.maxRating = u.maxRating || 0;
           student.stats.maxRank = u.maxRank || 'unrated';
           student.stats.avatar = u.titlePhoto || u.avatar || student.stats.avatar;
+          student.stats.lastOnlineTimeSeconds = u.lastOnlineTimeSeconds || 0;
           student.stats.lastSyncedAt = new Date().toISOString();
         }
       }
@@ -433,6 +436,25 @@ export const serverStore = {
     const leaderboard = this.getLeaderboard();
     const upcomingContests = await this.getUpcomingContests();
 
+    const now = Math.floor(Date.now() / 1000);
+    const liveStudents = memoryStore.students
+      .filter((s) => s.active && s.stats?.lastOnlineTimeSeconds)
+      .map((s) => {
+        const recentSub = recentActivity.find(sub => sub.studentId === s.id);
+        return {
+          studentId: s.id,
+          name: s.name,
+          handle: s.codeforcesHandle,
+          avatar: s.stats?.avatar,
+          lastOnlineTimeSeconds: s.stats?.lastOnlineTimeSeconds,
+          currentProblem: recentSub ? `${recentSub.problemIndex}. ${recentSub.problemName}` : null,
+          currentProblemUrl: recentSub ? (recentSub.contestId ? `https://codeforces.com/contest/${recentSub.contestId}/problem/${recentSub.problemIndex}` : `https://codeforces.com/problemset/problem/${recentSub.contestId}/${recentSub.problemIndex}`) : null,
+          isSolving: recentSub ? (recentSub.verdict !== 'OK') : false,
+        };
+      })
+      .sort((a, b) => (b.lastOnlineTimeSeconds || 0) - (a.lastOnlineTimeSeconds || 0))
+      .slice(0, 8);
+
     const classSummary = {
       ...analytics,
       recentActivity,
@@ -443,6 +465,7 @@ export const serverStore = {
         ratingChange: l.recentRatingChange || 0,
         currentRating: l.rating,
       })),
+      liveStudents,
     };
 
     return {
