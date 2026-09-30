@@ -24,6 +24,131 @@ async function sendTelegramMessage(chatId: number | string, text: string, extra:
   }
 }
 
+
+async function buildAIClassroomContext(): Promise<string> {
+  const students = serverStore.getStudents();
+  const leaderboard = serverStore.getLeaderboard();
+  let contests: any[] = [];
+  try {
+    contests = await serverStore.getUpcomingContests();
+  } catch {}
+  const analytics = serverStore.getAnalytics();
+
+  return `You are the dedicated AI Teaching & Development Assistant for Codeforces Classroom Hub, working directly with Teacher Abubakr Juraev (@AbubakrJ).
+Classroom live telemetry:
+- Teacher: Abubakr Juraev (@AbubakrJ, CF Rating: 693; ACMP.ru ID: 515125, Rating: 984, Solved: 79)
+- Total Students Enrolled: ${students.length}
+- Students: ${students.map(s => `@${s.codeforcesHandle} (${s.name}, Rating: ${s.stats?.rating || 0}, Solved: ${s.stats?.solvedCount || 0})`).join(', ')}
+- Top Ranked: ${leaderboard.slice(0, 3).map(l => `#${l.rank} ${l.name} (@${l.handle}, ${l.rating})`).join(', ')}
+- Next Upcoming Contests: ${contests.slice(0, 3).map(c => `${c.name}`).join('; ')}
+- Classroom Solved Problems: ${analytics.totalSolvedProblems}
+- Classroom Average Rating: ${analytics.averageRating}
+
+Your mission:
+1. Act as a co-teacher & developer assistant for Abubakr Juraev.
+2. Help solve competitive programming problems (C++, Python, algorithms, math, data structures).
+3. Provide curriculum advice, contest preparation drills, and topic recommendations.
+4. Keep responses concise, clear, and perfectly formatted with Telegram markdown.`;
+}
+
+async function callAI(prompt: string): Promise<string> {
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const openAiKey = process.env.OPENAI_API_KEY;
+  const context = await buildAIClassroomContext();
+
+  // 1. Google Gemini (Preferred free tier)
+  if (geminiKey) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: context }] },
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 900, temperature: 0.7 }
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text;
+      }
+    } catch (e: any) {
+      console.error('Gemini error:', e.message);
+    }
+  }
+
+  // 2. OpenAI fallback
+  if (openAiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openAiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: context },
+            { role: 'user', content: prompt }
+          ],
+          max_tokens: 800
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content;
+        if (text) return text;
+      }
+    } catch (e: any) {
+      console.error('OpenAI error:', e.message);
+    }
+  }
+
+  // 3. Built-in Classroom Intelligence Engine (Zero API Key needed)
+  const q = prompt.toLowerCase();
+
+  if (q.includes('top') || q.includes('best') || q.includes('winner') || q.includes('highest')) {
+    const lb = serverStore.getLeaderboard();
+    if (lb.length === 0) return 'Currently, no students are registered in the classroom yet. Add students using /add <handle>.';
+    const top = lb[0];
+    return `🏆 *Top Student in Classroom:*\n\n🥇 *${top.name}* (@${top.handle})\n⭐ Rating: *${top.rating}* (${top.rankTitle})\n✅ Problems Solved: *${top.solvedCount}*\n\n[View Leaderboard](${WEB_URL}/leaderboard)`;
+  }
+
+  if (q.includes('how many') || q.includes('total students') || q.includes('roster count')) {
+    const students = serverStore.getStudents();
+    return `👥 *Classroom Status:* You currently have *${students.length} students* enrolled in your competitive programming batch.\n\nView roster: ${WEB_URL}/students`;
+  }
+
+  if (q.includes('weak') || q.includes('practice') || q.includes('study') || q.includes('recommend')) {
+    const analytics = serverStore.getAnalytics();
+    const weak = analytics.weakTopics || [];
+    let msg = `💡 *AI Practice & Study Recommendations:*\n\n`;
+    if (weak.length > 0) {
+      msg += `🎯 *Topics needing reinforcement based on student error rates:*\n`;
+      weak.slice(0, 3).forEach((w: any) => {
+        msg += `• *${w.tag}* (${w.accuracy}% pass rate across ${w.totalAttempts} submissions)\n`;
+      });
+    } else {
+      msg += `• Focus on *Dynamic Programming (knapsack & 1D state)*\n• Practice *Binary Search on Answer*\n• Implement *Graph BFS/DFS shortest path*\n`;
+    }
+    msg += `\n📊 [View AI Insights on Dashboard](${WEB_URL}/analytics)`;
+    return msg;
+  }
+
+  if (q.includes('dp') || q.includes('dynamic programming')) {
+    return '💡 *Competitive Programming Guide: Dynamic Programming*\n\n*Core steps for solving DP problems:*\n1. **Define the State:** dp[i] = optimal answer considering first i items.\n2. **Find the Transition:** How does dp[i] build upon dp[i-1] or earlier states?\n3. **Base Case:** Identify minimum boundary condition (e.g. dp[0] = 0).\n4. **Order of Computation:** Ensure required previous subproblems are computed first.\n\n*Recommended starter practice:* CF 706B, CF 455A, CF 189A.';
+  }
+
+  if (q.includes('segment tree') || q.includes('segtree')) {
+    return '🌲 *Segment Tree Quick Reference (C++)*\n\n*Properties:*\n• Query: O(log N)\n• Point Update: O(log N)\n• Space: 4 * N\n\n*Use when:* You need range queries (min/max/sum) with frequent point or range updates.\nFor pure range sum with point updates, consider **Fenwick Tree (Binary Indexed Tree)** for simpler O(log N) code!';
+  }
+
+  return '🤖 *Classroom AI Assistant*\n\nI am your competitive programming co-pilot! You can ask me:\n• *"Who is leading the class?"*\n• *"What topics should students practice next?"*\n• *"Explain segment tree or binary search"*\n• *"Add student <handle>"*\n\n💡 *Tip:* To unlock full generative chat with Gemini, add `GEMINI_API_KEY="your_free_key"` to your environment (free from aistudio.google.com)!';
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action');
@@ -57,6 +182,19 @@ export async function POST(req: Request) {
     const text = message.text.trim();
     const command = text.split(' ')[0].toLowerCase().replace('@codeforcesstudents_bot', '');
     const args = text.split(' ').slice(1);
+
+    if (command === '/ai' || command === '/ask') {
+      const prompt = args.join(' ').trim();
+      if (!prompt) {
+        await sendTelegramMessage(chatId, '💬 *Ask me anything!*\n\nUsage: `/ai <your question or code question>`\n\n*Example:* `/ai How to explain binary search to students?`');
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendTelegramMessage(chatId, '🧠 *Thinking...*');
+      const aiReply = await callAI(prompt);
+      await sendTelegramMessage(chatId, aiReply);
+      return NextResponse.json({ ok: true });
+    }
 
     if (command === '/start') {
       await sendTelegramMessage(
@@ -94,7 +232,7 @@ export async function POST(req: Request) {
           `• \`/contests\` : Upcoming official Codeforces rounds\n` +
           `• \`/next\` : Countdown to the nearest upcoming round\n` +
           `• \`/rating <handle>\` : Real-time rating check for any CF handle\n` +
-          `• \`/problems <handle>\` : Solved count and activity breakdown\n\n` +
+          `• \`/problems <handle>\` : Solved count and activity breakdown\n• \`/ai <question>\` : Ask the AI assistant anything (algorithms, students, CP)\n\n` +
           `🌐 Dashboard: ${WEB_URL}`
       );
       return NextResponse.json({ ok: true });
@@ -426,8 +564,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Default unknown command
-    await sendTelegramMessage(chatId, `❓ Unknown command. Send \`/help\` to see available commands.`);
+    // Natural Language AI Fallback
+    // If the message is not a recognized slash command, let the AI assistant process it!
+    const aiResponse = await callAI(text);
+    await sendTelegramMessage(chatId, aiResponse);
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error('Webhook error:', err);
