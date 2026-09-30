@@ -158,7 +158,7 @@ function JoinContent() {
             <div className="pt-3 border-t border-white/[0.06] flex items-center justify-center gap-3">
               <div className="relative">
                 <img
-                  src={teacher.avatar || 'https://userpic.codeforces.org/no-avatar.jpg'}
+                  src={teacher.avatar ? (teacher.avatar.startsWith('//') ? `https:${teacher.avatar}` : teacher.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
                   alt={teacher.handle}
                   className="w-9 h-9 rounded-xl object-cover border border-white/10 bg-black/40 shadow-sm ring-1 ring-blue-500/40"
                 />
@@ -199,7 +199,7 @@ function JoinContent() {
           <div className="glass-card p-4 rounded-2xl border border-white/[0.08] flex items-center justify-between gap-4 max-w-sm mx-auto text-left shadow-xl">
             <div className="flex items-center gap-3">
               <img
-                src={joinedStudent.stats?.avatar || 'https://userpic.codeforces.org/no-avatar.jpg'}
+                src={joinedStudent.stats?.avatar ? (joinedStudent.stats?.avatar.startsWith('//') ? `https:${joinedStudent.stats?.avatar}` : joinedStudent.stats?.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
                 alt={handle}
                 className="w-12 h-12 rounded-xl object-cover border border-white/10 bg-black/40"
               />

@@ -303,7 +303,7 @@ export default function StudentsPage() {
                     <td className="py-4 px-5">
                       <div className="flex items-center gap-3.5">
                         <img
-                          src={s.stats?.avatar || 'https://userpic.codeforces.org/no-avatar.jpg'}
+                          src={s.stats?.avatar ? (s.stats?.avatar.startsWith('//') ? `https:${s.stats?.avatar}` : s.stats?.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
                           alt={s.codeforcesHandle}
                           className="w-10 h-10 rounded-2xl object-cover border border-white/10 bg-black/40 shadow-sm"
                         />

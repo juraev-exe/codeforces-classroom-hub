@@ -134,7 +134,7 @@ export default function StudentDetailPage() {
 
         <div className="flex items-center gap-5">
           <img
-            src={stats?.avatar || 'https://userpic.codeforces.org/no-avatar.jpg'}
+            src={stats?.avatar ? (stats?.avatar.startsWith('//') ? `https:${stats?.avatar}` : stats?.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
             alt={student.codeforcesHandle}
             className="w-20 h-20 rounded-2xl border border-white/15 object-cover bg-black/50 shadow-xl"
           />
