@@ -183,6 +183,9 @@ export async function POST(req: Request) {
     const command = text.split(' ')[0].toLowerCase().replace('@codeforcesstudents_bot', '');
     const args = text.split(' ').slice(1);
 
+    // Sync state from Supabase cloud database
+    await serverStore.syncFromSupabase();
+
     if (command === '/ai' || command === '/ask') {
       const prompt = args.join(' ').trim();
       if (!prompt) {

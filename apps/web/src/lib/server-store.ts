@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { supabase } from './supabase';
 
 export interface ClassroomData {
   id: string;
@@ -150,6 +151,63 @@ export async function fetchCF<T>(endpoint: string, params: Record<string, string
 }
 
 export const serverStore = {
+  async syncFromSupabase(): Promise<void> {
+    try {
+      const { data, error } = await supabase.from('students').select('*');
+      if (!error && Array.isArray(data)) {
+        if (data.length > 0) {
+          const fetched: StudentData[] = data.map((row: any) => ({
+            id: row.id,
+            name: row.name,
+            codeforcesHandle: row.codeforces_handle || row.codeforcesHandle,
+            classId: row.class_id || row.classId || 'class-algorithms-2026',
+            className: row.class_name || row.className || 'Algorithms & Competitive Programming 2026',
+            group: row.group || 'Student',
+            active: row.active ?? true,
+            createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+            updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
+            stats: row.stats || null,
+            submissions: row.submissions || [],
+            contestParticipations: row.contest_participations || row.contestParticipations || [],
+          }));
+
+          const handleMap = new Map<string, StudentData>();
+          for (const s of INITIAL_STUDENTS) {
+            handleMap.set(s.codeforcesHandle.toLowerCase(), s);
+          }
+          for (const s of memoryStore.students) {
+            handleMap.set(s.codeforcesHandle.toLowerCase(), s);
+          }
+          for (const s of fetched) {
+            handleMap.set(s.codeforcesHandle.toLowerCase(), s);
+          }
+          memoryStore.students = Array.from(handleMap.values());
+          saveStore(memoryStore);
+        } else {
+          // If Supabase table exists but is empty, seed initial teacher student
+          for (const s of INITIAL_STUDENTS) {
+            await supabase.from('students').upsert({
+              id: s.id,
+              name: s.name,
+              codeforces_handle: s.codeforcesHandle,
+              class_id: s.classId,
+              class_name: s.className,
+              group: s.group,
+              active: s.active,
+              stats: s.stats,
+              submissions: s.submissions || [],
+              contest_participations: s.contestParticipations || [],
+              created_at: s.createdAt,
+              updated_at: s.updatedAt,
+            }, { onConflict: 'codeforces_handle' });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Supabase Sync] Warning:', err);
+    }
+  },
+
   getClassrooms(): ClassroomData[] {
     const counts: Record<string, number> = {};
     for (const s of memoryStore.students) {
@@ -305,6 +363,30 @@ export const serverStore = {
 
     memoryStore.students.push(newStudent);
     saveStore(memoryStore);
+
+    // Persist permanently to Supabase cloud
+    try {
+      await supabase.from('students').upsert(
+        {
+          id: newStudent.id,
+          name: newStudent.name,
+          codeforces_handle: newStudent.codeforcesHandle,
+          class_id: newStudent.classId,
+          class_name: newStudent.className,
+          group: newStudent.group,
+          active: newStudent.active,
+          stats: newStudent.stats,
+          submissions: newStudent.submissions || [],
+          contest_participations: newStudent.contestParticipations || [],
+          created_at: newStudent.createdAt,
+          updated_at: newStudent.updatedAt,
+        },
+        { onConflict: 'codeforces_handle' }
+      );
+    } catch (supaErr) {
+      console.warn('[Supabase Upsert] Warning:', supaErr);
+    }
+
     return newStudent;
   },
 
@@ -359,6 +441,18 @@ export const serverStore = {
       }));
 
       saveStore(memoryStore);
+
+      // Update in Supabase
+      try {
+        await supabase
+          .from('students')
+          .update({
+            stats: student.stats,
+            submissions: student.submissions,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('codeforces_handle', student.codeforcesHandle);
+      } catch (e) {}
     } catch (err) {
       console.error('Error syncing student:', err);
     }

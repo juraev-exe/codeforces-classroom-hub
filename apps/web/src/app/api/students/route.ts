@@ -8,6 +8,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const classId = searchParams.get('classId') || undefined;
     const search = searchParams.get('search') || undefined;
+    await serverStore.syncFromSupabase();
     const students = serverStore.getStudents(classId, search);
     return NextResponse.json(students);
   } catch (err: any) {
