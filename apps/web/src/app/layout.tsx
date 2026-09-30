@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" style={{ fontSize: "14.5px" }}>
       <body className="min-h-screen flex flex-col bg-background text-zinc-100 antialiased selection:bg-blue-500/30 selection:text-blue-200">
         <Navbar />
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-7">
