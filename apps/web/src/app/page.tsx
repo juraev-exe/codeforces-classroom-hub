@@ -687,7 +687,7 @@ export default function DashboardPage() {
                 </div>
 
                 <a
-                  href={`https://codeforces.com/contests/${nextContest.id}`}
+                  href={`https://codeforces.com/contestRegistration/${nextContest.codeforcesContestId || nextContest.id}`}
                   target="_blank"
                   rel="noreferrer"
                   className="w-full flex items-center justify-center gap-2 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition-all shadow-md shadow-blue-600/30 active:scale-[0.97]"
@@ -718,11 +718,11 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <a
-                    href={`https://codeforces.com/contests/${c.id}`}
+                    href={`https://codeforces.com/contestRegistration/${c.codeforcesContestId || c.id}`}
                     target="_blank"
                     rel="noreferrer"
                     className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition shrink-0"
-                    title="View contest on Codeforces"
+                    title="Register for contest on Codeforces"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
