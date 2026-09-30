@@ -408,27 +408,41 @@ export const serverStore = {
     const allStudentSubs: any[] = [];
     for (const st of memoryStore.students) {
       if (Array.isArray(st.submissions)) {
+        // Map to keep only the latest submission per problem for a cleaner activity feed
+        const latestPerProblem = new Map<string, any>();
         for (const s of st.submissions) {
-          allStudentSubs.push({
-            id: String(s.id || s.cfSubmissionId),
-            studentId: st.id,
-            studentHandle: st.codeforcesHandle,
-            studentName: st.name,
-            cfSubmissionId: s.cfSubmissionId || s.id,
-            contestId: s.contestId,
-            problemIndex: s.index || s.problemIndex || 'A',
-            problemName: s.problemName || 'Problem',
-            problemRating: s.rating || s.problemRating || null,
-            tags: Array.isArray(s.tags) ? s.tags : [],
-            verdict: s.verdict || 'OK',
-            language: s.language || 'C++',
-            submittedAt: s.submittedAt || new Date().toISOString(),
-          });
+          const pKey = `${s.contestId}-${s.index || s.problemIndex || 'A'}`;
+          let parsedTags = [];
+          try {
+            parsedTags = typeof s.tags === 'string' ? JSON.parse(s.tags) : (Array.isArray(s.tags) ? s.tags : []);
+          } catch (e) { }
+
+          const current = latestPerProblem.get(pKey);
+          const submittedAt = s.submittedAt || new Date().toISOString();
+          
+          if (!current || new Date(current.submittedAt).getTime() < new Date(submittedAt).getTime()) {
+            latestPerProblem.set(pKey, {
+              id: String(s.id || s.cfSubmissionId),
+              studentId: st.id,
+              studentHandle: st.codeforcesHandle,
+              studentName: st.name,
+              cfSubmissionId: s.cfSubmissionId || s.id,
+              contestId: s.contestId,
+              problemIndex: s.index || s.problemIndex || 'A',
+              problemName: s.problemName || 'Problem',
+              problemRating: s.rating || s.problemRating || null,
+              tags: parsedTags,
+              verdict: s.verdict || 'OK',
+              language: s.language || 'C++',
+              submittedAt: submittedAt,
+            });
+          }
         }
+        allStudentSubs.push(...Array.from(latestPerProblem.values()));
       }
     }
 
-    const recentActivity = [...allStudentSubs, ...teacherSubmissions]
+    const recentActivity = [...allStudentSubs]
       .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
       .slice(0, 50);
 
@@ -545,7 +559,10 @@ export const serverStore = {
     for (const st of active) {
       if (Array.isArray(st.submissions)) {
         for (const s of st.submissions) {
-          const tags = Array.isArray(s.tags) ? s.tags : [];
+          let tags = [];
+          try {
+            tags = typeof s.tags === 'string' ? JSON.parse(s.tags) : (Array.isArray(s.tags) ? s.tags : []);
+          } catch(e) {}
           const verdict = s.verdict || 'OK';
           const pKey = `${s.contestId}-${s.index || s.problemIndex || 'A'}`;
 
