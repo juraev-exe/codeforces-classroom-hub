@@ -1001,6 +1001,83 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* SECTION 3: TEACHER INSIGHTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* At-Risk Students */}
+        <div className="glass-panel rounded-3xl p-5 sm:p-6 shadow-2xl border border-white/[0.08] space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/25 flex items-center justify-center text-red-400">
+              <AlertTriangle className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-tight">At-Risk Students</h3>
+              <p className="text-[10px] text-zinc-400">Haven&apos;t submitted in 7+ days</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {((classSummary as any).atRiskStudents || []).length > 0 ? (
+              ((classSummary as any).atRiskStudents || []).map((s: any) => (
+                <div key={s.studentId} className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition">
+                  <div className="flex items-center gap-2.5">
+                    <img
+                      src={s.avatar ? (s.avatar.startsWith('//') ? `https:${s.avatar}` : s.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'}
+                      alt={s.handle}
+                      className="w-7 h-7 rounded-lg object-cover border border-white/10"
+                      onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
+                    />
+                    <div>
+                      <span className="text-[11px] font-semibold text-zinc-100 block">{s.name}</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">@{s.handle}</span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 font-mono">
+                    {s.daysSinceLastSubmission}d idle
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-1.5 text-zinc-500 py-6">
+                <CheckCircle2 className="w-6 h-6 opacity-20" />
+                <span className="text-[11px]">All students are active!</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Student Progress Ranking */}
+        <div className="glass-panel rounded-3xl p-5 sm:p-6 shadow-2xl border border-white/[0.08] space-y-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-violet-500/10 border border-violet-500/25 flex items-center justify-center text-violet-400">
+              <TrendingUp className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-tight">Student Progress</h3>
+              <p className="text-[10px] text-zinc-400">Problems solved & contest stats</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {((classSummary as any).studentProgress || []).slice(0, 6).map((s: any, idx: number) => (
+              <div key={s.studentId} className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-5 h-5 rounded-md bg-white/[0.05] text-[10px] font-bold text-zinc-400 flex items-center justify-center">
+                    {idx + 1}
+                  </span>
+                  <div>
+                    <span className="text-[11px] font-semibold text-zinc-100 block">{s.name}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono">Rating: {s.rating} · {s.contestCount} contests</span>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                  {s.solvedCount} solved
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Add Student Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">

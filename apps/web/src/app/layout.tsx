@@ -5,6 +5,9 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Codeforces Classroom Hub | Live Student Telemetry',
   description: 'Track student problem solving, contest ratings, and Codeforces telemetry in real-time.',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
