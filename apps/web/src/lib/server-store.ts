@@ -506,6 +506,52 @@ export const serverStore = {
         ? sortedRatings[Math.floor(sortedRatings.length / 2)]
         : 0;
 
+    const ratingDistribution = [
+      { range: 'Newbie', count: ratings.filter(r => r < 1200).length },
+      { range: 'Pupil', count: ratings.filter(r => r >= 1200 && r < 1400).length },
+      { range: 'Specialist', count: ratings.filter(r => r >= 1400 && r < 1600).length },
+      { range: 'Expert', count: ratings.filter(r => r >= 1600 && r < 1900).length },
+      { range: 'Cand. Master', count: ratings.filter(r => r >= 1900 && r < 2100).length },
+      { range: 'Master+', count: ratings.filter(r => r >= 2100).length },
+    ];
+
+    const allStudentSubs: any[] = [];
+    for (const st of active) {
+      if (Array.isArray(st.submissions)) {
+        for (const s of st.submissions) {
+          allStudentSubs.push({
+            id: String(s.id || s.cfSubmissionId),
+            studentId: st.id,
+            studentHandle: st.codeforcesHandle,
+            studentName: st.name,
+            cfSubmissionId: s.cfSubmissionId || s.id,
+            contestId: s.contestId,
+            problemIndex: s.index || s.problemIndex || 'A',
+            problemName: s.problemName || 'Problem',
+            problemRating: s.rating || s.problemRating || null,
+            tags: Array.isArray(s.tags) ? s.tags : [],
+            verdict: s.verdict || 'OK',
+            language: s.language || 'C++',
+            submittedAt: s.submittedAt || new Date().toISOString(),
+          });
+        }
+      }
+    }
+    const recentActivity = allStudentSubs
+      .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+      .slice(0, 50);
+
+    const sortedActive = [...active].sort(
+      (a, b) => (b.stats?.rating || 0) - (a.stats?.rating || 0)
+    );
+    const mostImprovedStudents = sortedActive.slice(0, 5).map((s) => ({
+        studentId: s.id,
+        name: s.name,
+        handle: s.codeforcesHandle,
+        ratingChange: 0,
+        currentRating: s.stats?.rating || 0,
+    }));
+
     return {
       totalStudents: students.length,
       activeStudents: active.length,
@@ -516,8 +562,10 @@ export const serverStore = {
       totalSolvedProblems: totalSolved,
       averageSolvedProblems: active.length > 0 ? Math.round(totalSolved / active.length) : 0,
       totalContestsParticipated: active.reduce((acc, s) => acc + (s.stats?.contestCount || 0), 0),
-      ratingDistribution: [],
+      ratingDistribution,
       topicStrengths: [],
+      recentActivity,
+      mostImprovedStudents,
     };
   },
 
