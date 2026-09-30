@@ -354,6 +354,12 @@ export const serverStore = {
   },
 
   async getTeacherDashboard(): Promise<any> {
+    // Auto-sync all students to pull fresh submissions from Codeforces
+    const allStudents = this.getStudents();
+    await Promise.all(
+      allStudents.map((s) => this.syncStudent(s.id).catch(() => null))
+    );
+
     const handle = 'AbubakrJ';
     let rating = 693;
     let rank = 'newbie';
