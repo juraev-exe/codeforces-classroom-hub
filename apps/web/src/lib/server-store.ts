@@ -538,10 +538,42 @@ export const serverStore = {
       { range: 'Master+', count: ratings.filter(r => r >= 2100).length },
     ];
 
+    const tagStats: Record<string, { attempted: number; solved: number }> = {};
+    const problemStats: Record<string, { name: string; url: string; fails: number; solves: number; rating: number }> = {};
+
     const allStudentSubs: any[] = [];
     for (const st of active) {
       if (Array.isArray(st.submissions)) {
         for (const s of st.submissions) {
+          const tags = Array.isArray(s.tags) ? s.tags : [];
+          const verdict = s.verdict || 'OK';
+          const pKey = `${s.contestId}-${s.index || s.problemIndex || 'A'}`;
+
+          if (!problemStats[pKey]) {
+            problemStats[pKey] = {
+              name: s.problemName || 'Problem',
+              url: s.contestId ? `https://codeforces.com/contest/${s.contestId}/problem/${s.index || s.problemIndex || 'A'}` : '#',
+              fails: 0,
+              solves: 0,
+              rating: s.rating || s.problemRating || 0
+            };
+          }
+
+          if (verdict === 'OK') {
+            problemStats[pKey].solves += 1;
+            tags.forEach((tag: string) => {
+              if (!tagStats[tag]) tagStats[tag] = { attempted: 0, solved: 0 };
+              tagStats[tag].solved += 1;
+              tagStats[tag].attempted += 1;
+            });
+          } else {
+            problemStats[pKey].fails += 1;
+            tags.forEach((tag: string) => {
+              if (!tagStats[tag]) tagStats[tag] = { attempted: 0, solved: 0 };
+              tagStats[tag].attempted += 1;
+            });
+          }
+
           allStudentSubs.push({
             id: String(s.id || s.cfSubmissionId),
             studentId: st.id,
@@ -552,14 +584,31 @@ export const serverStore = {
             problemIndex: s.index || s.problemIndex || 'A',
             problemName: s.problemName || 'Problem',
             problemRating: s.rating || s.problemRating || null,
-            tags: Array.isArray(s.tags) ? s.tags : [],
-            verdict: s.verdict || 'OK',
+            tags: tags,
+            verdict: verdict,
             language: s.language || 'C++',
             submittedAt: s.submittedAt || new Date().toISOString(),
           });
         }
       }
     }
+
+    const topicInsights = Object.entries(tagStats)
+      .map(([tag, stats]) => ({
+        topic: tag,
+        successRate: stats.attempted > 0 ? Math.round((stats.solved / stats.attempted) * 100) : 0,
+        totalAttempts: stats.attempted
+      }))
+      .filter(t => t.totalAttempts > 2)
+      .sort((a, b) => a.successRate - b.successRate);
+
+    const weakTopics = topicInsights.slice(0, 5);
+
+    const recommendedProblems = Object.values(problemStats)
+      .filter(p => p.fails > 0 && p.solves < p.fails)
+      .sort((a, b) => (b.fails - b.solves) - (a.fails - a.solves))
+      .slice(0, 5);
+
     const recentActivity = allStudentSubs
       .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
       .slice(0, 50);
@@ -586,7 +635,9 @@ export const serverStore = {
       averageSolvedProblems: active.length > 0 ? Math.round(totalSolved / active.length) : 0,
       totalContestsParticipated: active.reduce((acc, s) => acc + (s.stats?.contestCount || 0), 0),
       ratingDistribution,
-      topicStrengths: [],
+      topicStrengths: topicInsights,
+        weakTopics,
+        recommendedProblems,
       recentActivity,
       mostImprovedStudents,
     };
