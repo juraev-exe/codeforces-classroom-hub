@@ -162,21 +162,34 @@ export function Sidebar() {
               <span className="text-xs font-semibold text-zinc-100 truncate block">
                 Abubakr Juraev
               </span>
-              <span className="text-[10px] text-zinc-500 font-mono block">
-                @AbubakrJ &bull; 693
-              </span>
+              <div className="flex items-center gap-1.5 text-[10px] font-mono">
+                <span className="text-zinc-400">CF: 693</span>
+                <span className="text-zinc-600">&bull;</span>
+                <span className="text-amber-400 font-semibold">ACMP: 984</span>
+              </div>
             </div>
           </div>
 
-          <a
-            href="https://codeforces.com/profile/AbubakrJ"
-            target="_blank"
-            rel="noreferrer"
-            title="Open Codeforces Profile"
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition shrink-0"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+          <div className="flex items-center gap-1 shrink-0">
+            <a
+              href="https://codeforces.com/profile/AbubakrJ"
+              target="_blank"
+              rel="noreferrer"
+              title="Codeforces Profile"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-white/[0.08] transition"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            <a
+              href="https://acmp.ru/index.asp?main=user&id=515125"
+              target="_blank"
+              rel="noreferrer"
+              title="ACMP.ru Profile (#515125)"
+              className="p-1.5 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-white/[0.08] transition text-[11px] font-bold font-mono"
+            >
+              A
+            </a>
+          </div>
         </div>
       </div>
     </div>

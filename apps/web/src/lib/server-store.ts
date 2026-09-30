@@ -511,6 +511,16 @@ export const serverStore = {
         ratingHistory: [],
         recentSubmissions: teacherSubmissions,
         tagStats: {},
+        acmp: {
+          id: '515125',
+          name: 'Джураев Абубакр',
+          rating: 984,
+          rank: '25494 / 310311',
+          solvedCount: 79,
+          unsolvedCount: 5,
+          url: 'https://acmp.ru/index.asp?main=user&id=515125',
+          course: 'Язык программирования C++ (29%)',
+        },
       },
       classroom: {
         id: 'class-algorithms-2026',

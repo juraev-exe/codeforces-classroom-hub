@@ -321,36 +321,68 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold text-white tracking-tight">{teacher.name || teacher.handle}</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full border ${getRankBadgeClass(teacher.rank)} font-bold uppercase`}>
                       {teacher.rank}
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold uppercase">
+                      ACMP 984
                     </span>
                     <span className="hidden sm:inline-flex text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 font-semibold items-center gap-1">
                       <Sparkles className="w-2.5 h-2.5 text-blue-400" />
                       Lead
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] text-zinc-400 font-mono mt-0.5">
-                    <a
-                      href={`https://codeforces.com/profile/${teacher.handle}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={`hover:underline flex items-center gap-1 font-bold ${getRankColor(teacher.rank)}`}
-                    >
-                      @{teacher.handle}
-                      <ExternalLink className="w-2.5 h-2.5" />
-                    </a>
-                    <span>&bull;</span>
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-amber-400" />
-                      Rating: <strong className="text-white font-mono">{teacher.rating}</strong>
-                    </span>
-                    <span>&bull;</span>
-                    <span className="flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                      Solved: <strong className="text-white font-mono">{teacher.totalSolved}</strong>
-                    </span>
+                  {/* Profiles Row */}
+                  <div className="flex flex-col gap-1 mt-1 text-[11px] font-mono">
+                    <div className="flex items-center gap-2 text-zinc-400 flex-wrap">
+                      <span className="text-[10px] uppercase font-bold text-zinc-500">CF:</span>
+                      <a
+                        href={`https://codeforces.com/profile/${teacher.handle}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={`hover:underline flex items-center gap-1 font-bold ${getRankColor(teacher.rank)}`}
+                      >
+                        @{teacher.handle}
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                      <span>&bull;</span>
+                      <span className="flex items-center gap-1">
+                        <Zap className="w-3 h-3 text-amber-400" />
+                        Rating: <strong className="text-white font-mono">{teacher.rating}</strong>
+                      </span>
+                      <span>&bull;</span>
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        Solved: <strong className="text-white font-mono">{teacher.totalSolved}</strong>
+                      </span>
+                    </div>
+
+                    {/* ACMP Profile Integration */}
+                    <div className="flex items-center gap-2 text-amber-300/90 flex-wrap pt-0.5 border-t border-white/[0.04]">
+                      <span className="text-[10px] uppercase font-bold text-amber-500/80">ACMP.ru:</span>
+                      <a
+                        href="https://acmp.ru/index.asp?main=user&id=515125"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:underline flex items-center gap-1 font-bold text-amber-300"
+                      >
+                        ID #515125
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                      <span>&bull;</span>
+                      <span className="text-zinc-300">
+                        Rating: <strong className="text-amber-400 font-bold">984</strong>
+                      </span>
+                      <span>&bull;</span>
+                      <span className="text-zinc-300">
+                        Solved: <strong className="text-emerald-400 font-bold">79</strong>
+                      </span>
+                      <span className="hidden md:inline text-[10px] text-zinc-500">
+                        (Rank: 25,494)
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
