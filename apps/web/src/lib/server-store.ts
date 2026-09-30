@@ -39,10 +39,21 @@ export interface StudentData {
   contestParticipations?: any[];
 }
 
-const STORAGE_FILE = path.join(
-  process.env.TEMP || process.env.TMP || '/tmp',
-  'cf_hub_store_v1.json'
-);
+function getStorageFile(): string {
+  // First, prefer local project workspace if exists
+  const localFile = path.resolve(process.cwd(), 'classroom_data.json');
+  try {
+    if (fs.existsSync(localFile)) {
+      return localFile;
+    }
+    fs.writeFileSync(localFile, '', { flag: 'a' });
+    return localFile;
+  } catch {
+    return path.join(process.env.TEMP || process.env.TMP || '/tmp', 'cf_hub_store_v1.json');
+  }
+}
+
+const STORAGE_FILE = getStorageFile();
 
 // Initial state
 const INITIAL_CLASSES: ClassroomData[] = [
@@ -166,6 +177,7 @@ export const serverStore = {
   },
 
   getStudents(classId?: string, search?: string): StudentData[] {
+    memoryStore = loadStore();
     let list = memoryStore.students;
     if (classId) {
       list = list.filter((s) => s.classId === classId);
@@ -354,6 +366,7 @@ export const serverStore = {
   },
 
   async getTeacherDashboard(): Promise<any> {
+    memoryStore = loadStore();
     // Auto-sync only students who have no cached submissions (first load)
     // Uses a 5s timeout per student to avoid Vercel serverless timeout
     const allStudents = this.getStudents();

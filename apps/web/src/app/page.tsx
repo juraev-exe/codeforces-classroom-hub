@@ -191,6 +191,17 @@ export default function DashboardPage() {
         }),
       });
 
+      // Save to local vault
+      if (typeof window !== 'undefined') {
+        try {
+          const vault: any[] = JSON.parse(localStorage.getItem('cf_roster_vault') || '[]');
+          if (!vault.some((v) => v.handle.toLowerCase() === addHandle.trim().toLowerCase())) {
+            vault.push({ name: addName.trim(), handle: addHandle.trim(), classId: addClassId });
+            localStorage.setItem('cf_roster_vault', JSON.stringify(vault));
+          }
+        } catch {}
+      }
+
       setAddName('');
       setAddHandle('');
       setIsAddModalOpen(false);

@@ -66,6 +66,46 @@ export default function StudentsPage() {
       if (classesData.length > 0 && !classInput) {
         setClassInput(classesData[0].id);
       }
+
+      // Self-healing vault sync
+      if (typeof window !== 'undefined' && Array.isArray(studentsData)) {
+        try {
+          const vault: any[] = JSON.parse(localStorage.getItem('cf_roster_vault') || '[]');
+          const vaultHandles = new Set(vault.map((v) => (v.handle || '').toLowerCase()));
+          const serverHandles = new Set(studentsData.map((s) => (s.codeforcesHandle || '').toLowerCase()));
+
+          let vaultUpdated = false;
+          for (const s of studentsData) {
+            const h = (s.codeforcesHandle || '').toLowerCase();
+            if (h && h !== 'abubakrj' && !vaultHandles.has(h)) {
+              vault.push({ name: s.name, handle: s.codeforcesHandle, classId: s.classId });
+              vaultHandles.add(h);
+              vaultUpdated = true;
+            }
+          }
+          if (vaultUpdated) {
+            localStorage.setItem('cf_roster_vault', JSON.stringify(vault));
+          }
+
+          const missing = vault.filter((v) => v.handle && !serverHandles.has(v.handle.toLowerCase()));
+          if (missing.length > 0) {
+            Promise.all(
+              missing.map((m) =>
+                fetchApi('/api/students', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    name: m.name,
+                    codeforcesHandle: m.handle,
+                    classId: m.classId || (classesData[0] ? classesData[0].id : 'class-algorithms-2026'),
+                  }),
+                }).catch(() => null)
+              )
+            ).then(() => {
+              fetchApi<Student[]>('/api/students').then(setStudents).catch(() => {});
+            });
+          }
+        } catch {}
+      }
     } catch (err: any) {
       console.error('Error loading data:', err);
     } finally {
@@ -96,6 +136,17 @@ export default function StudentsPage() {
           group: groupInput.trim() || undefined,
         }),
       });
+
+      // Save to local vault
+      if (typeof window !== 'undefined') {
+        try {
+          const vault: any[] = JSON.parse(localStorage.getItem('cf_roster_vault') || '[]');
+          if (!vault.some((v) => v.handle.toLowerCase() === handleInput.trim().toLowerCase())) {
+            vault.push({ name: nameInput.trim(), handle: handleInput.trim(), classId: classInput });
+            localStorage.setItem('cf_roster_vault', JSON.stringify(vault));
+          }
+        } catch {}
+      }
 
       // Reset and close
       setNameInput('');
