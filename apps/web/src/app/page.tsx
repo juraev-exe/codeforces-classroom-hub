@@ -467,242 +467,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* SECTION 1: WHAT QUESTIONS ARE STUDENTS SOLVING? */}
-      <div className="glass-panel rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/[0.08] space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
-                <Code2 className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                  What Questions Are Students Solving?
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-300 font-normal">
-                    {filteredSubmissions.length} events
-                  </span>
-                </h2>
-                <p className="text-xs text-zinc-400">
-                  Live problem submissions, algorithm tags, difficulty ratings, and official test verdicts.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Interactive Filters Pill */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Search */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-500" />
-              <input
-                type="text"
-                placeholder="Filter problem or tag..."
-                value={problemSearch}
-                onChange={(e) => setProblemSearch(e.target.value)}
-                className="bg-black/40 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 w-52 transition-all"
-              />
-            </div>
-
-            {/* Verdict Filter */}
-            <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/10 text-xs">
-              <button
-                onClick={() => setVerdictFilter('all')}
-                className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-xs font-semibold ${
-                  verdictFilter === 'all'
-                    ? 'bg-white/10 text-white shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <ListFilter className="w-3 h-3" />
-                <span>All</span>
-              </button>
-              <button
-                onClick={() => setVerdictFilter('solved')}
-                className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-xs font-semibold ${
-                  verdictFilter === 'solved'
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                <span>Solved Only</span>
-              </button>
-            </div>
-
-            {/* Student Filter */}
-            <div className="relative">
-              <select
-                value={selectedStudentFilter}
-                onChange={(e) => setSelectedStudentFilter(e.target.value)}
-                className="bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-blue-500 transition-all cursor-pointer font-medium"
-              >
-                <option value="all">All Students</option>
-                {leaderboard.map((s) => (
-                  <option key={s.studentId} value={s.handle}>
-                    {s.name} (@{s.handle})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Questions Feed Table */}
-        <div className="overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/30">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white/[0.03] border-b border-white/[0.06] text-[11px] text-zinc-400 uppercase tracking-wider font-semibold">
-              <tr>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-blue-400" />
-                    Student
-                  </span>
-                </th>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <FileCode className="w-3.5 h-3.5 text-indigo-400" />
-                    Problem / Question
-                  </span>
-                </th>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-purple-400" />
-                    Topic Tags
-                  </span>
-                </th>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <Flame className="w-3.5 h-3.5 text-amber-400" />
-                    Difficulty
-                  </span>
-                </th>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    Verdict
-                  </span>
-                </th>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-                    Language
-                  </span>
-                </th>
-                <th className="py-3 px-4 text-right">
-                  <span className="flex items-center justify-end gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-zinc-400" />
-                    Submitted
-                  </span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04]">
-              {filteredSubmissions.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-zinc-500 text-xs">
-                    <Code2 className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-                    <p className="font-semibold text-zinc-400">No submissions matching criteria</p>
-                    <p className="text-[11px] text-zinc-600 mt-0.5">Click "Sync Telemetry" to pull real-time Codeforces submissions.</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredSubmissions.slice(0, 35).map((sub) => {
-                  const verdict = getVerdictBadge(sub.verdict);
-                  const cfProblemUrl = `https://codeforces.com/contest/${sub.contestId}/problem/${sub.problemIndex}`;
-
-                  return (
-                    <tr key={sub.id} className="hover:bg-white/[0.025] transition-colors">
-                      <td className="py-3.5 px-4">
-                        <Link
-                          href={`/students/${sub.studentId}`}
-                          className="group flex items-center gap-2"
-                        >
-                          <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs font-bold shrink-0">
-                            {sub.studentName?.charAt(0) || 'S'}
-                          </div>
-                          <div>
-                            <span className="text-xs font-semibold text-zinc-200 group-hover:text-blue-400 transition block">
-                              {sub.studentName}
-                            </span>
-                            <span className="text-[10px] font-mono text-zinc-500 block">
-                              @{sub.studentHandle}
-                            </span>
-                          </div>
-                        </Link>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <a
-                          href={cfProblemUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="group inline-flex items-center gap-1.5 text-xs font-bold text-white hover:text-blue-400 transition"
-                        >
-                          <span className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/10 text-[10px] font-mono font-bold text-zinc-300">
-                            {sub.contestId}{sub.problemIndex}
-                          </span>
-                          <span>{sub.problemName}</span>
-                          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition text-zinc-400" />
-                        </a>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1 flex-wrap max-w-xs">
-                          {(sub.tags || []).slice(0, 3).map((tag: string) => (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] text-zinc-400 border border-white/[0.06] font-medium"
-                            >
-                              <Hash className="w-2.5 h-2.5 text-zinc-500" />
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        {sub.problemRating ? (
-                          <span
-                            className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-lg border font-mono ${getDifficultyBadgeClass(
-                              sub.problemRating
-                            )}`}
-                          >
-                            <Flame className="w-3 h-3" />
-                            {sub.problemRating}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-zinc-600 font-mono">—</span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border ${verdict.className}`}
-                        >
-                          {renderVerdictIcon(verdict.type)}
-                          <span>{verdict.label}</span>
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-xs text-zinc-400 font-mono">
-                        <span className="px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06]">
-                          {sub.language}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right text-xs text-zinc-500 font-mono">
-                        {formatSafeDate(sub.submittedAt)}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* SECTION 2: LEADERBOARD & UPCOMING CONTESTS */}
+      {/* SECTION 1: LEADERBOARD & UPCOMING CONTESTS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Class Leaderboard */}
         <div className="lg:col-span-2 glass-panel rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/[0.08] space-y-4">
@@ -948,6 +713,241 @@ export default function DashboardPage() {
               @CodeForcesStudents_Bot
             </a>
           </div>
+        </div>
+      </div>
+
+      {/* SECTION 2: WHAT QUESTIONS ARE STUDENTS SOLVING? */}
+      <div className="glass-panel rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/[0.08] space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
+                <Code2 className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                  What Questions Are Students Solving?
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-300 font-normal">
+                    {filteredSubmissions.length} events
+                  </span>
+                </h2>
+                <p className="text-xs text-zinc-400">
+                  Live problem submissions, algorithm tags, difficulty ratings, and official test verdicts.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Filters Pill */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* Search */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-500" />
+              <input
+                type="text"
+                placeholder="Filter problem or tag..."
+                value={problemSearch}
+                onChange={(e) => setProblemSearch(e.target.value)}
+                className="bg-black/40 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 w-52 transition-all"
+              />
+            </div>
+
+            {/* Verdict Filter */}
+            <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/10 text-xs">
+              <button
+                onClick={() => setVerdictFilter('all')}
+                className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-xs font-semibold ${
+                  verdictFilter === 'all'
+                    ? 'bg-white/10 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <ListFilter className="w-3 h-3" />
+                <span>All</span>
+              </button>
+              <button
+                onClick={() => setVerdictFilter('solved')}
+                className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-xs font-semibold ${
+                  verdictFilter === 'solved'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                <span>Solved Only</span>
+              </button>
+            </div>
+
+            {/* Student Filter */}
+            <div className="relative">
+              <select
+                value={selectedStudentFilter}
+                onChange={(e) => setSelectedStudentFilter(e.target.value)}
+                className="bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-blue-500 transition-all cursor-pointer font-medium"
+              >
+                <option value="all">All Students</option>
+                {leaderboard.map((s) => (
+                  <option key={s.studentId} value={s.handle}>
+                    {s.name} (@{s.handle})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Questions Feed Table */}
+        <div className="overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/30">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-white/[0.03] border-b border-white/[0.06] text-[11px] text-zinc-400 uppercase tracking-wider font-semibold">
+              <tr>
+                <th className="py-3 px-4">
+                  <span className="flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-blue-400" />
+                    Student
+                  </span>
+                </th>
+                <th className="py-3 px-4">
+                  <span className="flex items-center gap-1.5">
+                    <FileCode className="w-3.5 h-3.5 text-indigo-400" />
+                    Problem / Question
+                  </span>
+                </th>
+                <th className="py-3 px-4">
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-purple-400" />
+                    Topic Tags
+                  </span>
+                </th>
+                <th className="py-3 px-4">
+                  <span className="flex items-center gap-1.5">
+                    <Flame className="w-3.5 h-3.5 text-amber-400" />
+                    Difficulty
+                  </span>
+                </th>
+                <th className="py-3 px-4">
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    Verdict
+                  </span>
+                </th>
+                <th className="py-3 px-4">
+                  <span className="flex items-center gap-1.5">
+                    <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                    Language
+                  </span>
+                </th>
+                <th className="py-3 px-4 text-right">
+                  <span className="flex items-center justify-end gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                    Submitted
+                  </span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.04]">
+              {filteredSubmissions.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-zinc-500 text-xs">
+                    <Code2 className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
+                    <p className="font-semibold text-zinc-400">No submissions matching criteria</p>
+                    <p className="text-[11px] text-zinc-600 mt-0.5">Click "Sync Telemetry" to pull real-time Codeforces submissions.</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredSubmissions.slice(0, 35).map((sub) => {
+                  const verdict = getVerdictBadge(sub.verdict);
+                  const cfProblemUrl = `https://codeforces.com/contest/${sub.contestId}/problem/${sub.problemIndex}`;
+
+                  return (
+                    <tr key={sub.id} className="hover:bg-white/[0.025] transition-colors">
+                      <td className="py-3.5 px-4">
+                        <Link
+                          href={`/students/${sub.studentId}`}
+                          className="group flex items-center gap-2"
+                        >
+                          <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs font-bold shrink-0">
+                            {sub.studentName?.charAt(0) || 'S'}
+                          </div>
+                          <div>
+                            <span className="text-xs font-semibold text-zinc-200 group-hover:text-blue-400 transition block">
+                              {sub.studentName}
+                            </span>
+                            <span className="text-[10px] font-mono text-zinc-500 block">
+                              @{sub.studentHandle}
+                            </span>
+                          </div>
+                        </Link>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <a
+                          href={cfProblemUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="group inline-flex items-center gap-1.5 text-xs font-bold text-white hover:text-blue-400 transition"
+                        >
+                          <span className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/10 text-[10px] font-mono font-bold text-zinc-300">
+                            {sub.contestId}{sub.problemIndex}
+                          </span>
+                          <span>{sub.problemName}</span>
+                          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition text-zinc-400" />
+                        </a>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1 flex-wrap max-w-xs">
+                          {(sub.tags || []).slice(0, 3).map((tag: string) => (
+                            <span
+                              key={tag}
+                              className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] text-zinc-400 border border-white/[0.06] font-medium"
+                            >
+                              <Hash className="w-2.5 h-2.5 text-zinc-500" />
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        {sub.problemRating ? (
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-lg border font-mono ${getDifficultyBadgeClass(
+                              sub.problemRating
+                            )}`}
+                          >
+                            <Flame className="w-3 h-3" />
+                            {sub.problemRating}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-zinc-600 font-mono">—</span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border ${verdict.className}`}
+                        >
+                          {renderVerdictIcon(verdict.type)}
+                          <span>{verdict.label}</span>
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-xs text-zinc-400 font-mono">
+                        <span className="px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06]">
+                          {sub.language}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right text-xs text-zinc-500 font-mono">
+                        {formatSafeDate(sub.submittedAt)}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
