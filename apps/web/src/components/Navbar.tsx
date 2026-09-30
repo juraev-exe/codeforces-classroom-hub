@@ -28,7 +28,6 @@ const navItems = [
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
   { href: '/contests', label: 'Contests', icon: Calendar },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/telegram', label: 'Telegram', icon: Bot },
 ];
 
 export function Navbar() {
@@ -44,21 +43,21 @@ export function Navbar() {
         {/* Brand */}
         <div className="flex items-center gap-5 sm:gap-6">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 flex items-center justify-center font-bold text-white text-xs shadow-lg shadow-blue-500/30 group-hover:scale-105 group-active:scale-95 transition-all duration-200 ring-1 ring-white/20">
-              <Code2 className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center font-bold text-white text-xs shadow-lg shadow-primary/30 group-hover:scale-105 group-active:scale-95 transition-all duration-200 ring-1 ring-white/20">
+              <Code2 className="w-4 h-4 text-accent" />
             </div>
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-sm tracking-tight text-white">
-                Classroom<span className="text-blue-400 font-extrabold">Hub</span>
+                Classroom<span className="text-accent font-extrabold">Hub</span>
               </span>
-              <span className="hidden sm:inline-flex text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-sm shadow-blue-500/10">
+              <span className="hidden sm:inline-flex text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 shadow-sm shadow-accent/10">
                 PRO
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1 bg-white/[0.03] p-1 rounded-xl border border-white/[0.06] backdrop-blur-md">
+          <nav className="hidden lg:flex items-center gap-1 bg-white/[0.02] p-1 rounded-xl border border-white/[0.04] backdrop-blur-md">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive =
@@ -68,13 +67,13 @@ export function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
+                  className={`relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-300 ${
                     isActive
-                      ? 'bg-blue-600/20 text-white shadow-sm border border-blue-500/30 text-blue-300'
-                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05]'
+                      ? 'bg-white/10 text-white shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
                   }`}
                 >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-blue-400' : 'text-zinc-400'}`} />
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-accent' : 'text-zinc-500'}`} />
                   {item.label}
                 </Link>
               );
@@ -87,30 +86,18 @@ export function Navbar() {
           {/* Quick Join Link Button */}
           <Link
             href="/join"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-xs font-semibold shadow-sm transition active:scale-[0.97]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/20 hover:bg-accent/30 text-accent border border-accent/30 text-xs font-semibold shadow-sm transition active:scale-[0.97]"
           >
-            <Zap className="w-3.5 h-3.5 text-blue-400" />
+            <Zap className="w-3.5 h-3.5 text-accent" />
             <span className="hidden sm:inline">Student</span>
             <span>Join</span>
           </Link>
 
-          {/* Telegram Bot Link */}
-          <a
-            href="https://t.me/CodeForcesStudents_Bot"
-            target="_blank"
-            rel="noreferrer"
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl glass-pill hover:bg-white/[0.08] text-xs text-zinc-300 font-medium transition"
-            title="Open Codeforces Telegram Bot"
-          >
-            <Bot className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden xl:inline">Bot</span>
-          </a>
-
           {/* Live Telemetry Status Pill */}
-          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[11px] text-emerald-400 font-semibold shadow-sm shadow-emerald-950/20">
+          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-accent/10 border border-accent/25 text-[11px] text-accent font-semibold shadow-sm shadow-accent/20">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
             </span>
             <span className="tracking-tight">CF Live</span>
           </div>
@@ -119,11 +106,11 @@ export function Navbar() {
             href="https://codeforces.com"
             target="_blank"
             rel="noreferrer"
-            className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 text-xs text-zinc-400 hover:text-white glass-pill rounded-xl transition"
+            className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground glass-pill rounded-xl transition"
             title="Open official Codeforces website"
           >
             <span>CF</span>
-            <ExternalLink className="w-3 h-3 text-zinc-500" />
+            <ExternalLink className="w-3 h-3 text-muted-foreground" />
           </a>
 
           {/* Mobile menu trigger */}
@@ -169,14 +156,6 @@ export function Navbar() {
             <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
               <Radio className="w-3 h-3 animate-pulse" /> Telemetry Online
             </span>
-            <a
-              href="https://t.me/CodeForcesStudents_Bot"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 text-cyan-400 hover:underline"
-            >
-              <Bot className="w-3.5 h-3.5" /> Telegram Bot
-            </a>
           </div>
         </div>
       )}

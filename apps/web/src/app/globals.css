@@ -2,19 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
 :root {
   color-scheme: dark;
 }
 
 body {
-  background-color: #06070a;
+  background-color: #0F172A;
   background-image: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.15) 0%, transparent 70%),
-    radial-gradient(circle 800px at 100% 90%, rgba(16, 185, 129, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(30, 41, 59, 0.5) 0%, transparent 70%),
+    radial-gradient(circle 800px at 100% 90%, rgba(34, 197, 94, 0.08) 0%, transparent 60%),
     radial-gradient(circle 600px at 0% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 60%);
   background-attachment: fixed;
-  color: #f1f5f9;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', system-ui, sans-serif;
+  color: #F8FAFC;
+  font-family: 'Fira Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;

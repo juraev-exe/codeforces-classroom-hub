@@ -308,9 +308,13 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md w-fit shadow-xl">
                 <div className="relative">
                   <img
-                    src={teacher.avatar || 'https://userpic.codeforces.org/no-avatar.jpg'}
+                    src={teacher.avatar ? (teacher.avatar.startsWith('//') ? `https:${teacher.avatar}` : teacher.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'}
                     alt={teacher.handle}
                     className="w-12 h-12 rounded-xl object-cover ring-2 ring-blue-500/50 ring-offset-2 ring-offset-[#06070a] bg-black/40 shadow-md"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).onerror = null;
+                      (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg';
+                    }}
                   />
                   <span className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-0.5 text-white ring-1 ring-black">
                     <BadgeCheck className="w-3.5 h-3.5" />
@@ -784,9 +788,13 @@ export default function DashboardPage() {
                         className="group flex items-center gap-2.5"
                       >
                         <img
-                          src={item.avatar || 'https://userpic.codeforces.org/no-avatar.jpg'}
+                          src={item.avatar ? (item.avatar.startsWith('//') ? `https:${item.avatar}` : item.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'}
                           alt={item.handle}
                           className="w-7 h-7 rounded-lg object-cover border border-white/10 bg-black/40"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).onerror = null;
+                            (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg';
+                          }}
                         />
                         <div>
                           <span className="font-semibold text-xs text-zinc-200 group-hover:text-blue-400 transition block">
