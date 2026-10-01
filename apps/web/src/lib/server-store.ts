@@ -172,14 +172,13 @@ export const serverStore = {
           }));
 
           const handleMap = new Map<string, StudentData>();
-          for (const s of INITIAL_STUDENTS) {
-            handleMap.set(s.codeforcesHandle.toLowerCase(), s);
-          }
-          for (const s of memoryStore.students) {
-            handleMap.set(s.codeforcesHandle.toLowerCase(), s);
-          }
           for (const s of fetched) {
             handleMap.set(s.codeforcesHandle.toLowerCase(), s);
+          }
+          for (const s of INITIAL_STUDENTS) {
+            if (!handleMap.has(s.codeforcesHandle.toLowerCase())) {
+              handleMap.set(s.codeforcesHandle.toLowerCase(), s);
+            }
           }
           memoryStore.students = Array.from(handleMap.values());
           saveStore(memoryStore);
@@ -252,7 +251,12 @@ export const serverStore = {
   },
 
   getStudentById(id: string): StudentData | null {
-    return memoryStore.students.find((s) => s.id === id) || null;
+    const q = id.toLowerCase();
+    return (
+      memoryStore.students.find(
+        (s) => s.id === id || s.codeforcesHandle.toLowerCase() === q
+      ) || null
+    );
   },
 
   async addStudent(data: {
@@ -391,29 +395,32 @@ export const serverStore = {
   },
 
   async deleteStudent(idOrHandle: string): Promise<boolean> {
-    const student = memoryStore.students.find(
-      (s) =>
-        s.id === idOrHandle ||
-        s.codeforcesHandle.toLowerCase() === idOrHandle.toLowerCase()
-    );
-    if (!student) return false;
-
-    // Remove from in-memory cache and local file
-    memoryStore.students = memoryStore.students.filter((s) => s.id !== student.id);
-    saveStore(memoryStore);
+    const target = idOrHandle.trim().toLowerCase();
 
     // Remove permanently from Supabase cloud database
+    let supabaseDeleted = false;
     try {
-      await supabase
+      const { data } = await supabase
         .from('students')
         .delete()
-        .eq('codeforces_handle', student.codeforcesHandle);
-      await supabase.from('students').delete().eq('id', student.id);
+        .or(`codeforces_handle.ilike.${target},id.eq.${idOrHandle}`)
+        .select();
+      if (data && data.length > 0) {
+        supabaseDeleted = true;
+      }
     } catch (err) {
       console.warn('[Supabase Delete] Warning:', err);
     }
 
-    return true;
+    // Also remove from in-memory cache and local file
+    const initialLen = memoryStore.students.length;
+    memoryStore.students = memoryStore.students.filter(
+      (s) => s.id !== idOrHandle && s.codeforcesHandle.toLowerCase() !== target
+    );
+    const memoryDeleted = memoryStore.students.length < initialLen;
+    saveStore(memoryStore);
+
+    return supabaseDeleted || memoryDeleted;
   },
 
   async syncStudent(id: string): Promise<StudentData | null> {

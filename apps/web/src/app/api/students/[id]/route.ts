@@ -8,6 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    await serverStore.syncFromSupabase().catch(() => {});
     const student = serverStore.getStudentById(params.id);
     if (!student) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
@@ -23,6 +24,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    await serverStore.syncFromSupabase().catch(() => {});
     const deleted = await serverStore.deleteStudent(params.id);
     if (!deleted) {
       return NextResponse.json({ error: 'Student not found.' }, { status: 404 });
