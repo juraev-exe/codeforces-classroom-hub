@@ -390,6 +390,32 @@ export const serverStore = {
     return newStudent;
   },
 
+  async deleteStudent(idOrHandle: string): Promise<boolean> {
+    const student = memoryStore.students.find(
+      (s) =>
+        s.id === idOrHandle ||
+        s.codeforcesHandle.toLowerCase() === idOrHandle.toLowerCase()
+    );
+    if (!student) return false;
+
+    // Remove from in-memory cache and local file
+    memoryStore.students = memoryStore.students.filter((s) => s.id !== student.id);
+    saveStore(memoryStore);
+
+    // Remove permanently from Supabase cloud database
+    try {
+      await supabase
+        .from('students')
+        .delete()
+        .eq('codeforces_handle', student.codeforcesHandle);
+      await supabase.from('students').delete().eq('id', student.id);
+    } catch (err) {
+      console.warn('[Supabase Delete] Warning:', err);
+    }
+
+    return true;
+  },
+
   async syncStudent(id: string): Promise<StudentData | null> {
     const student = memoryStore.students.find((s) => s.id === id);
     if (!student) return null;

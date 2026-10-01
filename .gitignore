@@ -41,3 +41,6 @@ Thumbs.db
 
 .vercel
 .env*
+
+classroom_data.json
+apps/web/classroom_data.json

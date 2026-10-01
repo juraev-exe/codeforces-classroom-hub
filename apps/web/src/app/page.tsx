@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Trophy,
@@ -105,8 +105,12 @@ export default function DashboardPage() {
 
   // Filters for student solved questions
   const [problemSearch, setProblemSearch] = useState('');
-  const [verdictFilter, setVerdictFilter] = useState<'all' | 'solved'>('all');
+  const [verdictFilter, setVerdictFilter] = useState<'all' | 'solved' | 'failed' | 'tle' | 'wa'>('all');
   const [selectedStudentFilter, setSelectedStudentFilter] = useState<string>('all');
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string>('all');
+  const [ratingFilter, setRatingFilter] = useState<string>('all');
+  const [copiedProblemKey, setCopiedProblemKey] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'feed' | 'grouped'>('feed');
 
   // Add student modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -124,6 +128,14 @@ export default function DashboardPage() {
     navigator.clipboard.writeText(inviteUrl);
     setInviteCopied(true);
     setTimeout(() => setInviteCopied(false), 3000);
+  }
+
+  function copyProblemCode(contestId?: number | null, index?: string) {
+    if (!contestId || !index) return;
+    const code = `${contestId}${index}`;
+    navigator.clipboard.writeText(code);
+    setCopiedProblemKey(code);
+    setTimeout(() => setCopiedProblemKey(null), 2000);
   }
 
   async function loadDashboard() {
@@ -267,6 +279,39 @@ export default function DashboardPage() {
 
   // Filter student submissions
   const allSubmissions = classSummary.recentActivity || [];
+
+  // Compute tag frequency
+  const tagCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    allSubmissions.forEach((s) => {
+      (s.tags || []).forEach((t: string) => {
+        counts[t] = (counts[t] || 0) + 1;
+      });
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+  }, [allSubmissions]);
+
+  // Submission metrics
+  const totalSubmissionsCount = allSubmissions.length;
+  const totalSolvedCount = allSubmissions.filter((s) => s.verdict === 'OK').length;
+  const totalFailedCount = totalSubmissionsCount - totalSolvedCount;
+  const accuracyPct =
+    totalSubmissionsCount > 0 ? Math.round((totalSolvedCount / totalSubmissionsCount) * 100) : 0;
+
+  const hardestProblemAttempted = useMemo(() => {
+    let maxRating = 0;
+    let target = null;
+    allSubmissions.forEach((s) => {
+      if (s.problemRating && s.problemRating > maxRating) {
+        maxRating = s.problemRating;
+        target = s;
+      }
+    });
+    return target as any;
+  }, [allSubmissions]);
+
   const filteredSubmissions = allSubmissions.filter((sub) => {
     const searchLower = problemSearch.toLowerCase();
     const matchesSearch =
@@ -274,14 +319,75 @@ export default function DashboardPage() {
       (sub.problemIndex || '').toLowerCase().includes(searchLower) ||
       (sub.studentName || '').toLowerCase().includes(searchLower) ||
       (sub.studentHandle || '').toLowerCase().includes(searchLower) ||
-      (sub.tags || []).some((t) => t.toLowerCase().includes(searchLower));
+      (sub.tags || []).some((t: string) => t.toLowerCase().includes(searchLower));
 
-    const matchesVerdict = verdictFilter === 'all' ? true : sub.verdict === 'OK';
+    let matchesVerdict = true;
+    if (verdictFilter === 'solved') matchesVerdict = sub.verdict === 'OK';
+    else if (verdictFilter === 'failed') matchesVerdict = sub.verdict !== 'OK';
+    else if (verdictFilter === 'tle') matchesVerdict = sub.verdict === 'TIME_LIMIT_EXCEEDED';
+    else if (verdictFilter === 'wa') matchesVerdict = sub.verdict === 'WRONG_ANSWER';
+
     const matchesStudent =
       selectedStudentFilter === 'all' ? true : sub.studentHandle === selectedStudentFilter;
 
-    return matchesSearch && matchesVerdict && matchesStudent;
+    const matchesTag =
+      selectedTagFilter === 'all' ? true : (sub.tags || []).includes(selectedTagFilter);
+
+    let matchesRating = true;
+    const r = sub.problemRating;
+    if (ratingFilter === '<1000') matchesRating = !!r && r < 1000;
+    else if (ratingFilter === '1000-1399') matchesRating = !!r && r >= 1000 && r <= 1399;
+    else if (ratingFilter === '1400-1799') matchesRating = !!r && r >= 1400 && r <= 1799;
+    else if (ratingFilter === '1800+') matchesRating = !!r && r >= 1800;
+
+    return matchesSearch && matchesVerdict && matchesStudent && matchesTag && matchesRating;
   });
+
+  // Grouped problem cards view
+  const groupedProblems = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        problemKey: string;
+        contestId?: number | null;
+        index: string;
+        name: string;
+        rating: number | null | undefined;
+        tags: string[];
+        solvers: Array<{ name: string; handle: string; verdict: string; submittedAt: string }>;
+        totalAttempts: number;
+        solvedAttempts: number;
+      }
+    >();
+
+    filteredSubmissions.forEach((sub) => {
+      const key = `${sub.contestId}-${sub.problemIndex}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          problemKey: key,
+          contestId: sub.contestId,
+          index: sub.problemIndex,
+          name: sub.problemName,
+          rating: sub.problemRating ?? null,
+          tags: sub.tags || [],
+          solvers: [],
+          totalAttempts: 0,
+          solvedAttempts: 0,
+        });
+      }
+      const entry = map.get(key)!;
+      entry.totalAttempts += 1;
+      if (sub.verdict === 'OK') entry.solvedAttempts += 1;
+      entry.solvers.push({
+        name: sub.studentName || 'Student',
+        handle: sub.studentHandle || 'unknown',
+        verdict: sub.verdict,
+        submittedAt: sub.submittedAt,
+      });
+    });
+
+    return Array.from(map.values());
+  }, [filteredSubmissions]);
 
   const nextContest = upcomingContests[0];
 
@@ -761,65 +867,264 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* SECTION 2: WHAT QUESTIONS ARE STUDENTS SOLVING? */}
-        <div className="lg:col-span-2 glass-panel rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/[0.08] space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
-                <Code2 className="w-4 h-4" />
+        <div className="lg:col-span-2 glass-panel rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/[0.08] space-y-6">
+          {/* Section Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 shadow-sm shadow-emerald-500/10">
+                  <Code2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                    What Questions Are Students Solving?
+                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-mono font-medium">
+                      {filteredSubmissions.length} of {totalSubmissionsCount}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-zinc-400">
+                    Live telemetry across student problems, test verdicts, algorithms, and sticking points.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                  What Questions Are Students Solving?
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/[0.06] text-zinc-300 font-normal">
-                    {filteredSubmissions.length} events
-                  </span>
-                </h2>
-                <p className="text-xs text-zinc-400">
-                  Live problem submissions, algorithm tags, difficulty ratings, and official test verdicts.
-                </p>
-              </div>
+            </div>
+
+            {/* View Mode Switcher (Feed vs Problem Cards) */}
+            <div className="flex items-center bg-black/50 p-1 rounded-2xl border border-white/10 self-start md:self-auto shadow-inner">
+              <button
+                type="button"
+                onClick={() => setViewMode('feed')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs font-semibold ${
+                  viewMode === 'feed'
+                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <ListFilter className="w-3.5 h-3.5" />
+                <span>Live Feed</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('grouped')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs font-semibold ${
+                  viewMode === 'grouped'
+                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Problem Cards</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/30 text-purple-200 font-mono">
+                  {groupedProblems.length}
+                </span>
+              </button>
             </div>
           </div>
 
-          {/* Interactive Filters Pill */}
-          <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Classroom Intelligence Ribbon */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 transition-all">
+              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
+                <span>Total Attempts</span>
+                <Activity className="w-3.5 h-3.5 text-blue-400" />
+              </div>
+              <div className="text-xl font-bold font-mono text-white">{totalSubmissionsCount}</div>
+              <div className="text-[11px] text-zinc-500 mt-0.5">Telemetry events</div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 transition-all">
+              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
+                <span>Class Accuracy</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className={`text-xl font-bold font-mono ${accuracyPct >= 60 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {accuracyPct}%
+                </span>
+                <span className="text-[11px] text-zinc-500 font-mono">({totalSolvedCount} AC)</span>
+              </div>
+              <div className="text-[11px] text-zinc-500 mt-0.5">First-try & retry passes</div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 transition-all">
+              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
+                <span>Struggles / WA</span>
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+              </div>
+              <div className="text-xl font-bold font-mono text-rose-300">{totalFailedCount}</div>
+              <div className="text-[11px] text-zinc-500 mt-0.5">Need teacher review</div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-white/10 transition-all">
+              <div className="flex items-center justify-between text-zinc-400 text-xs mb-1">
+                <span>Peak Difficulty</span>
+                <Flame className="w-3.5 h-3.5 text-amber-400" />
+              </div>
+              {hardestProblemAttempted ? (
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-lg font-bold font-mono text-amber-400">
+                      ★ {hardestProblemAttempted.problemRating}
+                    </span>
+                    <span className="text-[11px] text-zinc-400 truncate max-w-[80px]" title={hardestProblemAttempted.problemName}>
+                      {hardestProblemAttempted.problemIndex}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-zinc-500 truncate mt-0.5">
+                    by @{hardestProblemAttempted.studentHandle}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-xl font-bold font-mono text-zinc-500">—</div>
+                  <div className="text-[11px] text-zinc-500 mt-0.5">No rated problems</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Interactive Topic Tag Cloud */}
+          {tagCounts.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                <span className="flex items-center gap-1 font-medium">
+                  <Tag className="w-3 h-3 text-cyan-400" />
+                  Popular Algorithm Topics:
+                </span>
+                {selectedTagFilter !== 'all' && (
+                  <button
+                    onClick={() => setSelectedTagFilter('all')}
+                    className="text-cyan-400 hover:underline"
+                  >
+                    Clear topic filter
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar flex-wrap sm:flex-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTagFilter('all')}
+                  className={`text-[11px] px-2.5 py-1 rounded-xl transition-all whitespace-nowrap font-medium ${
+                    selectedTagFilter === 'all'
+                      ? 'bg-white/15 text-white border border-white/20 shadow-sm'
+                      : 'bg-white/[0.03] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
+                  }`}
+                >
+                  All Topics ({allSubmissions.length})
+                </button>
+                {tagCounts.map(([tag, count]) => {
+                  const isActive = selectedTagFilter === tag;
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setSelectedTagFilter(isActive ? 'all' : tag)}
+                      className={`text-[11px] px-2.5 py-1 rounded-xl transition-all whitespace-nowrap flex items-center gap-1 font-medium ${
+                        isActive
+                          ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-500/40 shadow-sm shadow-cyan-500/10'
+                          : 'bg-white/[0.03] text-zinc-400 hover:text-zinc-200 border border-white/[0.06]'
+                      }`}
+                    >
+                      <Hash className="w-2.5 h-2.5 text-zinc-500" />
+                      <span>{tag}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                        isActive ? 'bg-cyan-400/20 text-cyan-200' : 'bg-white/[0.06] text-zinc-500'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Interactive Filters Bar */}
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
             {/* Search */}
-            <div className="relative">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-500" />
               <input
                 type="text"
-                placeholder="Filter problem or tag..."
+                placeholder="Search problem, tag, code, or student..."
                 value={problemSearch}
                 onChange={(e) => setProblemSearch(e.target.value)}
-                className="bg-black/40 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 w-52 transition-all"
+                className="w-full bg-black/40 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-blue-500 transition-all"
               />
+              {problemSearch && (
+                <button
+                  onClick={() => setProblemSearch('')}
+                  className="absolute right-2.5 top-2 text-zinc-500 hover:text-zinc-300 text-xs"
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
             {/* Verdict Filter */}
             <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/10 text-xs">
               <button
+                type="button"
                 onClick={() => setVerdictFilter('all')}
-                className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-xs font-semibold ${
+                className={`px-2.5 py-1 rounded-lg transition-all text-xs font-semibold ${
                   verdictFilter === 'all'
-                    ? 'bg-white/10 text-white shadow-sm'
+                    ? 'bg-white/15 text-white shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                <ListFilter className="w-3 h-3" />
-                <span>All</span>
+                All
               </button>
               <button
+                type="button"
                 onClick={() => setVerdictFilter('solved')}
-                className={`flex items-center gap-1 px-3 py-1 rounded-lg transition-all text-xs font-semibold ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all text-xs font-semibold ${
                   verdictFilter === 'solved'
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                     : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
                 <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                <span>Solved Only</span>
+                <span>Solved</span>
               </button>
+              <button
+                type="button"
+                onClick={() => setVerdictFilter('failed')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all text-xs font-semibold ${
+                  verdictFilter === 'failed'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <XCircle className="w-3 h-3 text-rose-400" />
+                <span>Struggling</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setVerdictFilter('tle')}
+                className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all text-xs font-semibold ${
+                  verdictFilter === 'tle'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Timer className="w-3 h-3 text-amber-400" />
+                <span>TLE</span>
+              </button>
+            </div>
+
+            {/* Difficulty Rating Filter */}
+            <div className="relative">
+              <select
+                value={ratingFilter}
+                onChange={(e) => setRatingFilter(e.target.value)}
+                className="bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-blue-500 transition-all cursor-pointer font-medium"
+              >
+                <option value="all">All Difficulties</option>
+                <option value="<1000">&lt; 1000 (Intro)</option>
+                <option value="1000-1399">1000 – 1399 (Easy)</option>
+                <option value="1400-1799">1400 – 1799 (Medium)</option>
+                <option value="1800+">1800+ (Advanced)</option>
+              </select>
             </div>
 
             {/* Student Filter */}
@@ -829,7 +1134,7 @@ export default function DashboardPage() {
                 onChange={(e) => setSelectedStudentFilter(e.target.value)}
                 className="bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-blue-500 transition-all cursor-pointer font-medium"
               >
-                <option value="all">All Students</option>
+                <option value="all">All Students ({leaderboard.length})</option>
                 {leaderboard.map((s) => (
                   <option key={s.studentId} value={s.handle}>
                     {s.name} (@{s.handle})
@@ -837,163 +1142,359 @@ export default function DashboardPage() {
                 ))}
               </select>
             </div>
+
+            {/* Reset Filters button if any filter active */}
+            {(problemSearch || verdictFilter !== 'all' || selectedStudentFilter !== 'all' || selectedTagFilter !== 'all' || ratingFilter !== 'all') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setProblemSearch('');
+                  setVerdictFilter('all');
+                  setSelectedStudentFilter('all');
+                  setSelectedTagFilter('all');
+                  setRatingFilter('all');
+                }}
+                className="text-[11px] text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/10 transition-colors"
+              >
+                Reset
+              </button>
+            )}
           </div>
-        </div>
 
-        {/* Questions Feed Table */}
-        <div className="overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/30">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-white/[0.03] border-b border-white/[0.06] text-[11px] text-zinc-400 uppercase tracking-wider font-semibold">
-              <tr>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-blue-400" />
-                    Student
-                  </span>
-                </th>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <FileCode className="w-3.5 h-3.5 text-indigo-400" />
-                    Problem / Question
-                  </span>
-                </th>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-purple-400" />
-                    Topic Tags
-                  </span>
-                </th>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <Flame className="w-3.5 h-3.5 text-amber-400" />
-                    Difficulty
-                  </span>
-                </th>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    Verdict
-                  </span>
-                </th>
-                <th className="py-3 px-4">
-                  <span className="flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-                    Language
-                  </span>
-                </th>
-                <th className="py-3 px-4 text-right">
-                  <span className="flex items-center justify-end gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-zinc-400" />
-                    Submitted
-                  </span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04]">
-              {filteredSubmissions.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-zinc-500 text-xs">
-                    <Code2 className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
-                    <p className="font-semibold text-zinc-400">No submissions matching criteria</p>
-                    <p className="text-[11px] text-zinc-600 mt-0.5">Click "Sync Telemetry" to pull real-time Codeforces submissions.</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredSubmissions.slice(0, 35).map((sub) => {
-                  const verdict = getVerdictBadge(sub.verdict);
-                  const cfProblemUrl = `https://codeforces.com/contest/${sub.contestId}/problem/${sub.problemIndex}`;
-
-                  return (
-                    <tr key={sub.id} className="hover:bg-white/[0.025] transition-colors">
-                      <td className="py-3.5 px-4">
-                        <Link
-                          href={`/students/${sub.studentId}`}
-                          className="group flex items-center gap-2"
-                        >
-                          <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs font-bold shrink-0">
-                            {sub.studentName?.charAt(0) || 'S'}
-                          </div>
-                          <div>
-                            <span className="text-xs font-semibold text-zinc-200 group-hover:text-blue-400 transition block">
-                              {sub.studentName}
-                            </span>
-                            <span className="text-[10px] font-mono text-zinc-500 block">
-                              @{sub.studentHandle}
-                            </span>
-                          </div>
-                        </Link>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <a
-                          href={cfProblemUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="group inline-flex items-center gap-1.5 text-xs font-bold text-white hover:text-blue-400 transition"
-                        >
-                          <span className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/10 text-[10px] font-mono font-bold text-zinc-300">
-                            {sub.contestId}{sub.problemIndex}
-                          </span>
-                          <span>{sub.problemName}</span>
-                          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition text-zinc-400" />
-                        </a>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1 flex-wrap max-w-xs">
-                          {(sub.tags || []).slice(0, 3).map((tag: string) => (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] text-zinc-400 border border-white/[0.06] font-medium"
-                            >
-                              <Hash className="w-2.5 h-2.5 text-zinc-500" />
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        {sub.problemRating ? (
-                          <span
-                            className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-lg border font-mono ${getDifficultyBadgeClass(
-                              sub.problemRating
-                            )}`}
-                          >
-                            <Flame className="w-3 h-3" />
-                            {sub.problemRating}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-zinc-600 font-mono">—</span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border ${verdict.className}`}
-                        >
-                          {renderVerdictIcon(verdict.type)}
-                          <span>{verdict.label}</span>
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-xs text-zinc-400 font-mono">
-                        <span className="px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06]">
-                          {sub.language}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right text-xs text-zinc-500 font-mono">
-                        {formatSafeDate(sub.submittedAt)}
+          {/* DUAL VIEW CONTENT */}
+          {viewMode === 'feed' ? (
+            /* VIEW 1: LIVE FEED TABLE */
+            <div className="overflow-x-auto rounded-2xl border border-white/[0.08] bg-black/30">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-white/[0.03] border-b border-white/[0.06] text-[11px] text-zinc-400 uppercase tracking-wider font-semibold">
+                  <tr>
+                    <th className="py-3 px-4">
+                      <span className="flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-blue-400" />
+                        Student
+                      </span>
+                    </th>
+                    <th className="py-3 px-4">
+                      <span className="flex items-center gap-1.5">
+                        <FileCode className="w-3.5 h-3.5 text-indigo-400" />
+                        Problem / Question
+                      </span>
+                    </th>
+                    <th className="py-3 px-4">
+                      <span className="flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5 text-purple-400" />
+                        Topic Tags
+                      </span>
+                    </th>
+                    <th className="py-3 px-4">
+                      <span className="flex items-center gap-1.5">
+                        <Flame className="w-3.5 h-3.5 text-amber-400" />
+                        Difficulty
+                      </span>
+                    </th>
+                    <th className="py-3 px-4">
+                      <span className="flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                        Verdict
+                      </span>
+                    </th>
+                    <th className="py-3 px-4">
+                      <span className="flex items-center gap-1.5">
+                        <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                        Language
+                      </span>
+                    </th>
+                    <th className="py-3 px-4 text-right">
+                      <span className="flex items-center justify-end gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                        Submitted
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {filteredSubmissions.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-zinc-500 text-xs">
+                        <Code2 className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
+                        <p className="font-semibold text-zinc-300">No submissions matching criteria</p>
+                        <p className="text-[11px] text-zinc-500 mt-1 max-w-sm mx-auto">
+                          Try adjusting your search terms, verdict filters, or click "Sync Telemetry" to pull real-time submissions.
+                        </p>
                       </td>
                     </tr>
-                  );
-                })
+                  ) : (
+                    filteredSubmissions.slice(0, 35).map((sub) => {
+                      const verdict = getVerdictBadge(sub.verdict);
+                      const cfProblemUrl = `https://codeforces.com/contest/${sub.contestId}/problem/${sub.problemIndex}`;
+                      const problemCode = `${sub.contestId}${sub.problemIndex}`;
+                      const isCopied = copiedProblemKey === problemCode;
+
+                      return (
+                        <tr key={sub.id} className="hover:bg-white/[0.025] transition-colors group/row">
+                          <td className="py-3.5 px-4">
+                            <Link
+                              href={`/students/${sub.studentId}`}
+                              className="group flex items-center gap-2"
+                            >
+                              <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs font-bold shrink-0">
+                                {sub.studentName?.charAt(0) || 'S'}
+                              </div>
+                              <div>
+                                <span className="text-xs font-semibold text-zinc-200 group-hover:text-blue-400 transition block">
+                                  {sub.studentName}
+                                </span>
+                                <span className="text-[10px] font-mono text-zinc-500 block">
+                                  @{sub.studentHandle}
+                                </span>
+                              </div>
+                            </Link>
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={cfProblemUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="group/link inline-flex items-center gap-1.5 text-xs font-bold text-white hover:text-blue-400 transition"
+                              >
+                                <span className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/10 text-[10px] font-mono font-bold text-zinc-300">
+                                  {sub.contestId}{sub.problemIndex}
+                                </span>
+                                <span className="max-w-[180px] sm:max-w-xs truncate">{sub.problemName}</span>
+                                <ExternalLink className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition text-zinc-400 shrink-0" />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => copyProblemCode(sub.contestId, sub.problemIndex)}
+                                title="Copy problem code (e.g. 1985C)"
+                                className="opacity-0 group-hover/row:opacity-100 p-1 text-zinc-500 hover:text-white transition"
+                              >
+                                {isCopied ? (
+                                  <Check className="w-3 h-3 text-emerald-400" />
+                                ) : (
+                                  <Copy className="w-3 h-3" />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-1 flex-wrap max-w-xs">
+                              {(sub.tags || []).slice(0, 3).map((tag: string) => (
+                                <button
+                                  key={tag}
+                                  type="button"
+                                  onClick={() => setSelectedTagFilter(tag)}
+                                  className="inline-flex items-center gap-0.5 text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] text-zinc-400 hover:text-cyan-300 hover:bg-cyan-500/10 border border-white/[0.06] hover:border-cyan-500/20 transition-all font-medium"
+                                  title={`Filter by tag: ${tag}`}
+                                >
+                                  <Hash className="w-2.5 h-2.5 text-zinc-500" />
+                                  {tag}
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            {sub.problemRating ? (
+                              <span
+                                className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-lg border font-mono ${getDifficultyBadgeClass(
+                                  sub.problemRating
+                                )}`}
+                              >
+                                <Flame className="w-3 h-3" />
+                                {sub.problemRating}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-zinc-600 font-mono">—</span>
+                            )}
+                          </td>
+
+                          <td className="py-3.5 px-4">
+                            <span
+                              className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border ${verdict.className}`}
+                            >
+                              {renderVerdictIcon(verdict.type)}
+                              <span>{verdict.label}</span>
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4 text-xs text-zinc-400 font-mono">
+                            <span className="px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] text-[11px]">
+                              {sub.language}
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4 text-right text-xs text-zinc-500 font-mono">
+                            {formatSafeDate(sub.submittedAt)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            /* VIEW 2: GROUPED PROBLEM CARDS & STICKING POINTS */
+            <div className="space-y-3.5">
+              {groupedProblems.length === 0 ? (
+                <div className="py-12 text-center text-zinc-500 text-xs rounded-2xl border border-white/[0.06] bg-black/30">
+                  <Layers className="w-8 h-8 text-zinc-700 mx-auto mb-2" />
+                  <p className="font-semibold text-zinc-300">No grouped problems match current filter</p>
+                  <p className="text-[11px] text-zinc-500 mt-1">Try resetting the difficulty or verdict filters.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {groupedProblems.map((prob) => {
+                    const cfProblemUrl = prob.contestId
+                      ? `https://codeforces.com/contest/${prob.contestId}/problem/${prob.index}`
+                      : `https://codeforces.com/problemset/problem/${prob.index}`;
+                    const solveRatio = prob.totalAttempts > 0 ? prob.solvedAttempts / prob.totalAttempts : 0;
+                    const solvePct = Math.round(solveRatio * 100);
+                    const isStickingPoint = prob.totalAttempts >= 2 && solveRatio < 0.5;
+                    const isMastered = prob.solvedAttempts > 0 && prob.solvedAttempts === prob.totalAttempts;
+
+                    const successfulSolvers = prob.solvers.filter((s) => s.verdict === 'OK');
+                    const strugglingSolvers = prob.solvers.filter((s) => s.verdict !== 'OK');
+
+                    return (
+                      <div
+                        key={prob.problemKey}
+                        className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
+                          isStickingPoint
+                            ? 'bg-rose-500/[0.03] border-rose-500/25 hover:border-rose-500/40'
+                            : isMastered
+                            ? 'bg-emerald-500/[0.03] border-emerald-500/25 hover:border-emerald-500/40'
+                            : 'bg-white/[0.02] border-white/[0.08] hover:border-white/15'
+                        }`}
+                      >
+                        {/* Card Top: Title, Rating, Links */}
+                        <div className="space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/10 text-[10px] font-mono font-bold text-zinc-300">
+                                  {prob.contestId}{prob.index}
+                                </span>
+                                {prob.rating ? (
+                                  <span
+                                    className={`text-[10px] px-2 py-0.5 rounded border font-mono ${getDifficultyBadgeClass(
+                                      prob.rating
+                                    )}`}
+                                  >
+                                    ★ {prob.rating}
+                                  </span>
+                                ) : null}
+                                {isStickingPoint && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold">
+                                    ⚠️ Sticking Point
+                                  </span>
+                                )}
+                                {isMastered && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
+                                    ✓ Class Solved
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="text-sm font-bold text-white mt-1 truncate" title={prob.name}>
+                                {prob.name}
+                              </h4>
+                            </div>
+
+                            <a
+                              href={cfProblemUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1.5 rounded-lg bg-white/[0.05] hover:bg-white/10 text-zinc-400 hover:text-white transition shrink-0"
+                              title="Open on Codeforces"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+
+                          {/* Tags */}
+                          {prob.tags.length > 0 && (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {prob.tags.slice(0, 3).map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.03] text-zinc-400 border border-white/[0.06]"
+                                >
+                                  #{tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Solve Rate Bar */}
+                          <div className="space-y-1 pt-1">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-zinc-400">Class Success Rate</span>
+                              <span className="font-mono font-semibold text-zinc-200">
+                                {prob.solvedAttempts} / {prob.totalAttempts} ({solvePct}%)
+                              </span>
+                            </div>
+                            <div className="w-full bg-white/[0.06] rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-full transition-all duration-500 ${
+                                  solvePct >= 60 ? 'bg-emerald-500' : solvePct > 0 ? 'bg-amber-500' : 'bg-rose-500'
+                                }`}
+                                style={{ width: `${solvePct}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Card Bottom: Student Solvers & Struggling */}
+                        <div className="mt-3.5 pt-3 border-t border-white/[0.06] space-y-2 text-xs">
+                          {successfulSolvers.length > 0 && (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">
+                                Solved:
+                              </span>
+                              {successfulSolvers.map((s, idx) => (
+                                <span
+                                  key={`${s.handle}-${idx}`}
+                                  className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-mono"
+                                >
+                                  @{s.handle}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {strugglingSolvers.length > 0 && (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] text-rose-400 font-semibold uppercase tracking-wider">
+                                Struggling:
+                              </span>
+                              {strugglingSolvers.map((s, idx) => {
+                                const vBadge = getVerdictBadge(s.verdict);
+                                return (
+                                  <span
+                                    key={`${s.handle}-${idx}`}
+                                    className="text-[10px] px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-300 border border-rose-500/20 font-mono flex items-center gap-1"
+                                    title={`Verdict: ${vBadge.label}`}
+                                  >
+                                    <span>@{s.handle}</span>
+                                    <span className="text-zinc-500">({vBadge.type.toUpperCase()})</span>
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
-      </div>
 
         {/* Live Students Status Panel */}
         <div className="glass-panel rounded-3xl p-6 sm:p-7 shadow-2xl border border-white/[0.08] space-y-5 flex flex-col">

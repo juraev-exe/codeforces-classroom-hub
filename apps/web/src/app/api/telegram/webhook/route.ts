@@ -254,6 +254,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    if (command === '/delete' || command === '/remove') {
+      const targetHandle = args[0]?.replace('@', '').trim();
+      if (!targetHandle) {
+        await sendTelegramMessage(chatId, '⚠️ Usage: `/delete <codeforces_handle>`\n\n*Example:* `/delete tourist`');
+        return NextResponse.json({ ok: true });
+      }
+
+      const deleted = await serverStore.deleteStudent(targetHandle);
+      if (deleted) {
+        await sendTelegramMessage(chatId, `🗑️ Student \`@${targetHandle}\` has been removed from the classroom and database.`);
+      } else {
+        await sendTelegramMessage(chatId, `❌ Student with handle \`@${targetHandle}\` was not found in the classroom.`);
+      }
+      return NextResponse.json({ ok: true });
+    }
+
     if (command === '/my') {
       const data = await serverStore.getTeacherDashboard();
       const t = data.teacher;

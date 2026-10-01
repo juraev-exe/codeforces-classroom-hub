@@ -173,10 +173,22 @@ export default function StudentsPage() {
     }
   }
 
-  async function handleDeleteStudent(id: string, name: string) {
-    if (!confirm(`Are you sure you want to remove student "${name}"?`)) return;
+  async function handleDeleteStudent(id: string, name: string, handle: string) {
+    if (!confirm(`Are you sure you want to remove student "${name}" (@${handle}) from the classroom?`)) return;
     try {
       await fetchApi(`/api/students/${id}`, { method: 'DELETE' });
+
+      // Clean local storage vault so student does not get restored automatically
+      if (typeof window !== 'undefined') {
+        try {
+          const vault: any[] = JSON.parse(localStorage.getItem('cf_roster_vault') || '[]');
+          const updatedVault = vault.filter(
+            (v) => (v.handle || '').toLowerCase() !== (handle || '').toLowerCase()
+          );
+          localStorage.setItem('cf_roster_vault', JSON.stringify(updatedVault));
+        } catch {}
+      }
+
       await loadData();
     } catch (err: any) {
       alert(`Delete failed: ${err.message}`);
@@ -448,7 +460,7 @@ export default function StudentsPage() {
                         </Link>
 
                         <button
-                          onClick={() => handleDeleteStudent(s.id, s.name)}
+                          onClick={() => handleDeleteStudent(s.id, s.name, s.codeforcesHandle)}
                           title="Remove Student"
                           className="p-2 rounded-xl text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition active:scale-[0.95]"
                         >
