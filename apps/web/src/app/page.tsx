@@ -225,42 +225,8 @@ export default function DashboardPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[65vh] gap-4 text-zinc-400">
-        <div className="w-14 h-14 rounded-2xl glass-panel flex items-center justify-center border border-white/10 shadow-2xl">
-          <RefreshCw className="w-6 h-6 animate-spin text-blue-400" />
-        </div>
-        <div className="text-center space-y-1">
-          <p className="text-sm font-semibold text-white tracking-tight">Syncing Codeforces Telemetry</p>
-          <p className="text-xs text-zinc-400">Fetching live contest rounds, ratings, and student submissions...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !data) {
-    return (
-      <div className="glass-panel p-8 rounded-3xl border border-rose-500/20 text-center max-w-md mx-auto my-16 shadow-2xl space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto text-rose-400">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <div className="space-y-1.5">
-          <h3 className="text-base font-bold text-white tracking-tight">Telemetry Feed Offline</h3>
-          <p className="text-xs text-zinc-400 leading-relaxed">{error}</p>
-        </div>
-        <button
-          onClick={loadDashboard}
-          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition shadow-lg shadow-blue-600/25 active:scale-[0.97]"
-        >
-          Retry Connection
-        </button>
-      </div>
-    );
-  }
-
-  const teacher = data.teacher || ({} as any);
-  const classSummary = data.classSummary || {
+  const teacher = data?.teacher || ({} as any);
+  const classSummary = data?.classSummary || {
     totalStudents: 0,
     activeStudents: 0,
     averageRating: 0,
@@ -274,8 +240,8 @@ export default function DashboardPage() {
     mostImprovedStudents: [],
     recentActivity: [],
   };
-  const leaderboard = Array.isArray(data.leaderboard) ? data.leaderboard : [];
-  const upcomingContests = Array.isArray(data.upcomingContests) ? data.upcomingContests : [];
+  const leaderboard = Array.isArray(data?.leaderboard) ? data.leaderboard : [];
+  const upcomingContests = Array.isArray(data?.upcomingContests) ? data.upcomingContests : [];
 
   // Filter student submissions
   const allSubmissions = classSummary.recentActivity || [];
@@ -390,6 +356,40 @@ export default function DashboardPage() {
   }, [filteredSubmissions]);
 
   const nextContest = upcomingContests[0];
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[65vh] gap-4 text-zinc-400">
+        <div className="w-14 h-14 rounded-2xl glass-panel flex items-center justify-center border border-white/10 shadow-2xl">
+          <RefreshCw className="w-6 h-6 animate-spin text-blue-400" />
+        </div>
+        <div className="text-center space-y-1">
+          <p className="text-sm font-semibold text-white tracking-tight">Syncing Codeforces Telemetry</p>
+          <p className="text-xs text-zinc-400">Fetching live contest rounds, ratings, and student submissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="glass-panel p-8 rounded-3xl border border-rose-500/20 text-center max-w-md mx-auto my-16 shadow-2xl space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto text-rose-400">
+          <AlertCircle className="w-6 h-6" />
+        </div>
+        <div className="space-y-1.5">
+          <h3 className="text-base font-bold text-white tracking-tight">Telemetry Feed Offline</h3>
+          <p className="text-xs text-zinc-400 leading-relaxed">{error}</p>
+        </div>
+        <button
+          onClick={loadDashboard}
+          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition shadow-lg shadow-blue-600/25 active:scale-[0.97]"
+        >
+          Retry Connection
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-7">
