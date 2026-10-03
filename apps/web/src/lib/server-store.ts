@@ -708,51 +708,189 @@ export const serverStore = {
         : 0;
 
     const ratingDistribution = [
-      { range: 'Newbie', count: ratings.filter(r => r < 1200).length },
-      { range: 'Pupil', count: ratings.filter(r => r >= 1200 && r < 1400).length },
-      { range: 'Specialist', count: ratings.filter(r => r >= 1400 && r < 1600).length },
-      { range: 'Expert', count: ratings.filter(r => r >= 1600 && r < 1900).length },
-      { range: 'Cand. Master', count: ratings.filter(r => r >= 1900 && r < 2100).length },
-      { range: 'Master+', count: ratings.filter(r => r >= 2100).length },
+      { range: 'Newbie (<1200)', count: ratings.filter((r) => r < 1200).length },
+      { range: 'Pupil (1200-1399)', count: ratings.filter((r) => r >= 1200 && r < 1400).length },
+      { range: 'Specialist (1400-1599)', count: ratings.filter((r) => r >= 1400 && r < 1600).length },
+      { range: 'Expert (1600-1899)', count: ratings.filter((r) => r >= 1600 && r < 1900).length },
+      { range: 'Cand. Master (1900-2199)', count: ratings.filter((r) => r >= 1900 && r < 2100).length },
+      { range: 'Master+ (2200+)', count: ratings.filter((r) => r >= 2100).length },
     ];
 
-    const tagStats: Record<string, { attempted: number; solved: number }> = {};
-    const problemStats: Record<string, { name: string; url: string; fails: number; solves: number; rating: number }> = {};
+    const tagStats: Record<string, { attempted: number; solved: number; failed: number }> = {};
+    const problemStats: Record<
+      string,
+      { name: string; url: string; fails: number; solves: number; rating: number }
+    > = {};
+
+    const verdictCounts: Record<string, number> = {
+      OK: 0,
+      WRONG_ANSWER: 0,
+      TIME_LIMIT_EXCEEDED: 0,
+      MEMORY_LIMIT_EXCEEDED: 0,
+      RUNTIME_ERROR: 0,
+      COMPILATION_ERROR: 0,
+      SKIPPED: 0,
+      OTHER: 0,
+    };
+
+    const difficultyBuckets: Record<string, { count: number; solved: number; failed: number }> = {
+      '< 1000': { count: 0, solved: 0, failed: 0 },
+      '1000 - 1200': { count: 0, solved: 0, failed: 0 },
+      '1200 - 1400': { count: 0, solved: 0, failed: 0 },
+      '1400 - 1600': { count: 0, solved: 0, failed: 0 },
+      '1600 - 1900': { count: 0, solved: 0, failed: 0 },
+      '1900 - 2200': { count: 0, solved: 0, failed: 0 },
+      '2200+': { count: 0, solved: 0, failed: 0 },
+    };
+
+    const hourlyCounts: Record<number, number> = {};
+    for (let h = 0; h < 24; h++) hourlyCounts[h] = 0;
+
+    const dailyCounts: Record<string, { count: number; solved: number; failed: number }> = {};
+    const languageCounts: Record<string, number> = {};
+
+    let hardestSolved: { name: string; rating: number; solvedBy: string; url: string } | null = null;
+    let fastestSolveMs: number | null = null;
 
     const allStudentSubs: any[] = [];
+    const studentStatsMap = new Map<
+      string,
+      {
+        totalSubs: number;
+        solvedSubs: number;
+        tagCounts: Record<string, number>;
+        latestSubDate: string | null;
+      }
+    >();
+
     for (const st of active) {
+      studentStatsMap.set(st.id, {
+        totalSubs: 0,
+        solvedSubs: 0,
+        tagCounts: {},
+        latestSubDate: null,
+      });
+
       if (Array.isArray(st.submissions)) {
         for (const s of st.submissions) {
-          let tags = [];
+          let tags: string[] = [];
           try {
-            tags = typeof s.tags === 'string' ? JSON.parse(s.tags) : (Array.isArray(s.tags) ? s.tags : []);
-          } catch(e) {}
+            tags =
+              typeof s.tags === 'string'
+                ? JSON.parse(s.tags)
+                : Array.isArray(s.tags)
+                ? s.tags
+                : [];
+          } catch (e) {}
+
           const verdict = s.verdict || 'OK';
           const pKey = `${s.contestId}-${s.index || s.problemIndex || 'A'}`;
+          const pRating = s.rating || s.problemRating || null;
+          const probUrl = s.contestId
+            ? `https://codeforces.com/contest/${s.contestId}/problem/${s.index || s.problemIndex || 'A'}`
+            : '#';
 
+          // Verdict aggregation
+          if (verdict in verdictCounts) {
+            verdictCounts[verdict]++;
+          } else {
+            verdictCounts.OTHER++;
+          }
+
+          // Difficulty aggregation
+          if (pRating) {
+            let bKey = '< 1000';
+            if (pRating >= 2200) bKey = '2200+';
+            else if (pRating >= 1900) bKey = '1900 - 2200';
+            else if (pRating >= 1600) bKey = '1600 - 1900';
+            else if (pRating >= 1400) bKey = '1400 - 1600';
+            else if (pRating >= 1200) bKey = '1200 - 1400';
+            else if (pRating >= 1000) bKey = '1000 - 1200';
+
+            difficultyBuckets[bKey].count++;
+            if (verdict === 'OK') {
+              difficultyBuckets[bKey].solved++;
+            } else {
+              difficultyBuckets[bKey].failed++;
+            }
+          }
+
+          // Problem stats
           if (!problemStats[pKey]) {
             problemStats[pKey] = {
               name: s.problemName || 'Problem',
-              url: s.contestId ? `https://codeforces.com/contest/${s.contestId}/problem/${s.index || s.problemIndex || 'A'}` : '#',
+              url: probUrl,
               fails: 0,
               solves: 0,
-              rating: s.rating || s.problemRating || 0
+              rating: pRating || 0,
             };
           }
 
           if (verdict === 'OK') {
             problemStats[pKey].solves += 1;
+            if (pRating && (!hardestSolved || pRating > hardestSolved.rating)) {
+              hardestSolved = {
+                name: `${s.index || s.problemIndex || 'A'}. ${s.problemName || 'Problem'}`,
+                rating: pRating,
+                solvedBy: st.name || st.codeforcesHandle,
+                url: probUrl,
+              };
+            }
+            if (
+              s.timeConsumedMillis &&
+              s.timeConsumedMillis > 0 &&
+              (!fastestSolveMs || s.timeConsumedMillis < fastestSolveMs)
+            ) {
+              fastestSolveMs = s.timeConsumedMillis;
+            }
             tags.forEach((tag: string) => {
-              if (!tagStats[tag]) tagStats[tag] = { attempted: 0, solved: 0 };
+              if (!tagStats[tag]) tagStats[tag] = { attempted: 0, solved: 0, failed: 0 };
               tagStats[tag].solved += 1;
               tagStats[tag].attempted += 1;
             });
           } else {
             problemStats[pKey].fails += 1;
             tags.forEach((tag: string) => {
-              if (!tagStats[tag]) tagStats[tag] = { attempted: 0, solved: 0 };
+              if (!tagStats[tag]) tagStats[tag] = { attempted: 0, solved: 0, failed: 0 };
+              tagStats[tag].failed += 1;
               tagStats[tag].attempted += 1;
             });
+          }
+
+          // Hourly & Daily Activity
+          const subDateStr = s.submittedAt || new Date().toISOString();
+          try {
+            const dateObj = new Date(subDateStr);
+            const hour = dateObj.getUTCHours();
+            hourlyCounts[hour] = (hourlyCounts[hour] || 0) + 1;
+
+            const dayKey = dateObj.toISOString().split('T')[0];
+            if (!dailyCounts[dayKey]) {
+              dailyCounts[dayKey] = { count: 0, solved: 0, failed: 0 };
+            }
+            dailyCounts[dayKey].count++;
+            if (verdict === 'OK') dailyCounts[dayKey].solved++;
+            else dailyCounts[dayKey].failed++;
+          } catch (e) {}
+
+          // Language counts
+          const lang = s.language || 'C++';
+          languageCounts[lang] = (languageCounts[lang] || 0) + 1;
+
+          // Student stats mapping
+          const stStat = studentStatsMap.get(st.id);
+          if (stStat) {
+            stStat.totalSubs++;
+            if (verdict === 'OK') stStat.solvedSubs++;
+            tags.forEach((t) => {
+              stStat.tagCounts[t] = (stStat.tagCounts[t] || 0) + 1;
+            });
+            if (
+              !stStat.latestSubDate ||
+              new Date(subDateStr).getTime() > new Date(stStat.latestSubDate).getTime()
+            ) {
+              stStat.latestSubDate = subDateStr;
+            }
           }
 
           allStudentSubs.push({
@@ -760,50 +898,208 @@ export const serverStore = {
             studentId: st.id,
             studentHandle: st.codeforcesHandle,
             studentName: st.name,
-            cfSubmissionId: s.cfSubmissionId || s.id,
+            studentAvatar: st.stats?.avatar || 'https://userpic.codeforces.org/no-avatar.jpg',
+            cfSubmissionId: Number(s.cfSubmissionId || s.id),
             contestId: s.contestId,
             problemIndex: s.index || s.problemIndex || 'A',
             problemName: s.problemName || 'Problem',
-            problemRating: s.rating || s.problemRating || null,
+            problemRating: pRating,
             tags: tags,
             verdict: verdict,
-            language: s.language || 'C++',
-            submittedAt: s.submittedAt || new Date().toISOString(),
+            language: lang,
+            submittedAt: subDateStr,
+            timeConsumedMillis: s.timeConsumedMillis,
+            memoryConsumedBytes: s.memoryConsumedBytes,
+            passedTestCount: s.passedTestCount,
           });
         }
       }
     }
 
-    const topicInsights = Object.entries(tagStats)
-      .map(([tag, stats]) => ({
-        topic: tag,
-        successRate: stats.attempted > 0 ? Math.round((stats.solved / stats.attempted) * 100) : 0,
-        totalAttempts: stats.attempted
-      }))
-      .filter(t => t.totalAttempts > 2)
-      .sort((a, b) => a.successRate - b.successRate);
+    // Comprehensive Topic Strengths
+    const topicStrengths = Object.entries(tagStats)
+      .map(([tag, stats]) => {
+        const rate =
+          stats.attempted > 0 ? Math.round((stats.solved / stats.attempted) * 100) : 0;
+        let status: 'mastered' | 'practicing' | 'needs_attention' = 'practicing';
+        if (rate >= 70 && stats.solved >= 2) status = 'mastered';
+        else if (rate < 45) status = 'needs_attention';
 
-    const weakTopics = topicInsights.slice(0, 5);
+        return {
+          topic: tag,
+          successRate: rate,
+          totalAttempts: stats.attempted,
+          solved: stats.solved,
+          failed: stats.failed,
+          status,
+        };
+      })
+      .sort((a, b) => b.totalAttempts - a.totalAttempts);
+
+    const weakTopics = topicStrengths
+      .filter((t) => t.totalAttempts >= 2 && t.successRate < 50)
+      .sort((a, b) => a.successRate - b.successRate)
+      .slice(0, 6)
+      .map((t) => ({
+        topic: t.topic,
+        successRate: t.successRate,
+        totalAttempts: t.totalAttempts,
+      }));
 
     const recommendedProblems = Object.values(problemStats)
-      .filter(p => p.fails > 0 && p.solves < p.fails)
-      .sort((a, b) => (b.fails - b.solves) - (a.fails - a.solves))
-      .slice(0, 5);
+      .filter((p) => p.fails > 0 && p.solves < p.fails)
+      .sort((a, b) => b.fails - b.solves - (a.fails - a.solves))
+      .slice(0, 6);
 
     const recentActivity = allStudentSubs
       .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
-      .slice(0, 50);
+      .slice(0, 250);
 
-    const sortedActive = [...active].sort(
-      (a, b) => (b.stats?.rating || 0) - (a.stats?.rating || 0)
-    );
-    const mostImprovedStudents = sortedActive.slice(0, 5).map((s) => ({
+    // Compute Rating delta and climber rankings using contest participations
+    const climberList = active.map((s) => {
+      let ratingDelta = 0;
+      if (Array.isArray(s.contestParticipations) && s.contestParticipations.length > 0) {
+        const latestCp = s.contestParticipations[s.contestParticipations.length - 1];
+        if (latestCp && typeof latestCp.newRating === 'number' && typeof latestCp.oldRating === 'number') {
+          ratingDelta = latestCp.newRating - latestCp.oldRating;
+        }
+      }
+      return {
         studentId: s.id,
         name: s.name,
         handle: s.codeforcesHandle,
-        ratingChange: 0,
+        ratingChange: ratingDelta,
         currentRating: s.stats?.rating || 0,
+        avatar: s.stats?.avatar,
+      };
+    });
+
+    const mostImprovedStudents = [...climberList]
+      .sort((a, b) => b.ratingChange - a.ratingChange)
+      .slice(0, 6);
+
+    // Build verdict distribution
+    const totalSubsLogged = allStudentSubs.length;
+    const verdictColorMap: Record<string, { label: string; color: string }> = {
+      OK: { label: 'Accepted', color: '#10b981' },
+      WRONG_ANSWER: { label: 'Wrong Answer', color: '#f43f5e' },
+      TIME_LIMIT_EXCEEDED: { label: 'Time Limit', color: '#f59e0b' },
+      MEMORY_LIMIT_EXCEEDED: { label: 'Memory Limit', color: '#ec4899' },
+      RUNTIME_ERROR: { label: 'Runtime Error', color: '#a855f7' },
+      COMPILATION_ERROR: { label: 'Compile Error', color: '#ea580c' },
+      SKIPPED: { label: 'Skipped', color: '#64748b' },
+      OTHER: { label: 'Other', color: '#71717a' },
+    };
+
+    const verdictDistribution = Object.entries(verdictCounts)
+      .filter(([_, count]) => count > 0)
+      .map(([v, count]) => {
+        const meta = verdictColorMap[v] || { label: v, color: '#71717a' };
+        return {
+          verdict: v,
+          label: meta.label,
+          count,
+          percentage: totalSubsLogged > 0 ? Math.round((count / totalSubsLogged) * 100) : 0,
+          color: meta.color,
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    // Build Difficulty distribution array
+    const difficultyDistribution = Object.entries(difficultyBuckets).map(([range, val]) => ({
+      range,
+      count: val.count,
+      solved: val.solved,
+      failed: val.failed,
     }));
+
+    // Build 90-day daily activity array (ensuring contiguous dates for heatmap)
+    const dailyActivity: Array<{ date: string; count: number; solved: number; failed: number }> = [];
+    const today = new Date();
+    for (let i = 83; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateKey = d.toISOString().split('T')[0];
+      const entry = dailyCounts[dateKey] || { count: 0, solved: 0, failed: 0 };
+      dailyActivity.push({
+        date: dateKey,
+        count: entry.count,
+        solved: entry.solved,
+        failed: entry.failed,
+      });
+    }
+
+    // Build Hourly activity
+    const hourlyActivity = Array.from({ length: 24 }, (_, h) => ({
+      hour: h,
+      label: `${h.toString().padStart(2, '0')}:00`,
+      count: hourlyCounts[h] || 0,
+    }));
+
+    // Find peak hour
+    let peakHour = 0;
+    let peakVal = 0;
+    hourlyActivity.forEach((ha) => {
+      if (ha.count > peakVal) {
+        peakVal = ha.count;
+        peakHour = ha.hour;
+      }
+    });
+    const peakHourLabel = `${peakHour.toString().padStart(2, '0')}:00 - ${(peakHour + 1)
+      .toString()
+      .padStart(2, '0')}:00 UTC`;
+
+    // Language distribution
+    const languageDistribution = Object.entries(languageCounts)
+      .map(([lang, count]) => ({
+        language: lang,
+        count,
+        percentage: totalSubsLogged > 0 ? Math.round((count / totalSubsLogged) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // Student comparison
+    const studentComparison = active.map((s) => {
+      const stData = studentStatsMap.get(s.id);
+      const totalS = stData?.totalSubs || 0;
+      const solvedS = stData?.solvedSubs || 0;
+      const acc = totalS > 0 ? Math.round((solvedS / totalS) * 100) : 0;
+
+      let topTag = 'General';
+      if (stData && Object.keys(stData.tagCounts).length > 0) {
+        const sortedTags = Object.entries(stData.tagCounts).sort((a, b) => b[1] - a[1]);
+        topTag = sortedTags[0][0];
+      }
+
+      let ratingDelta = 0;
+      if (Array.isArray(s.contestParticipations) && s.contestParticipations.length > 0) {
+        const latestCp = s.contestParticipations[s.contestParticipations.length - 1];
+        if (latestCp && typeof latestCp.newRating === 'number' && typeof latestCp.oldRating === 'number') {
+          ratingDelta = latestCp.newRating - latestCp.oldRating;
+        }
+      }
+
+      return {
+        studentId: s.id,
+        name: s.name,
+        handle: s.codeforcesHandle,
+        avatar: s.stats?.avatar || 'https://userpic.codeforces.org/no-avatar.jpg',
+        rating: s.stats?.rating || 0,
+        maxRating: s.stats?.maxRating || s.stats?.rating || 0,
+        rank: s.stats?.rank || 'unrated',
+        solvedCount: s.stats?.solvedCount || solvedS,
+        totalSubmissions: totalS,
+        accuracyRate: acc,
+        recentRatingChange: ratingDelta,
+        lastActive: stData?.latestSubDate || null,
+        topTag,
+      };
+    });
+
+    const overallAccuracy =
+      totalSubsLogged > 0
+        ? Math.round(((verdictCounts.OK || 0) / totalSubsLogged) * 100)
+        : 0;
 
     return {
       totalStudents: students.length,
@@ -816,11 +1112,25 @@ export const serverStore = {
       averageSolvedProblems: active.length > 0 ? Math.round(totalSolved / active.length) : 0,
       totalContestsParticipated: active.reduce((acc, s) => acc + (s.stats?.contestCount || 0), 0),
       ratingDistribution,
-      topicStrengths: topicInsights,
-        weakTopics,
-        recommendedProblems,
+      verdictDistribution,
+      difficultyDistribution,
+      dailyActivity,
+      hourlyActivity,
+      languageDistribution,
+      topicStrengths,
+      weakTopics,
+      recommendedProblems,
       recentActivity,
       mostImprovedStudents,
+      studentComparison,
+      statsSummary: {
+        accuracyRate: overallAccuracy,
+        totalSubmissions: totalSubsLogged,
+        activeCodersStreak: dailyActivity.filter((d) => d.count > 0).length,
+        hardestProblemSolved: hardestSolved,
+        fastestSolveTimeMs: fastestSolveMs,
+        peakHourLabel,
+      },
     };
   },
 

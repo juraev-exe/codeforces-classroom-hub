@@ -50,6 +50,7 @@ import {
   Hourglass,
   Link2,
   ListFilter,
+  BarChart3,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import {
@@ -889,35 +890,46 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* View Mode Switcher (Feed vs Problem Cards) */}
-            <div className="flex items-center bg-black/50 p-1 rounded-2xl border border-white/10 self-start md:self-auto shadow-inner">
-              <button
-                type="button"
-                onClick={() => setViewMode('feed')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs font-semibold ${
-                  viewMode === 'feed'
-                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
+            {/* Controls: Mode Switcher & Deep Analytics Link */}
+            <div className="flex items-center gap-2 flex-wrap self-start md:self-auto">
+              <div className="flex items-center bg-black/50 p-1 rounded-2xl border border-white/10 shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('feed')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs font-semibold ${
+                    viewMode === 'feed'
+                      ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  <ListFilter className="w-3.5 h-3.5" />
+                  <span>Live Feed</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grouped')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs font-semibold ${
+                    viewMode === 'grouped'
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Problem Cards</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/30 text-purple-200 font-mono">
+                    {groupedProblems.length}
+                  </span>
+                </button>
+              </div>
+
+              <Link
+                href="/analytics"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 border border-blue-500/30 text-xs font-semibold shadow-sm transition active:scale-[0.98]"
               >
-                <ListFilter className="w-3.5 h-3.5" />
-                <span>Live Feed</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('grouped')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all text-xs font-semibold ${
-                  viewMode === 'grouped'
-                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>Problem Cards</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-purple-500/30 text-purple-200 font-mono">
-                  {groupedProblems.length}
-                </span>
-              </button>
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>Deep Analytics</span>
+                <ArrowUpRight className="w-3 h-3 text-blue-400" />
+              </Link>
             </div>
           </div>
 

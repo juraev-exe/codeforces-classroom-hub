@@ -187,6 +187,7 @@ export interface SubmissionRecord {
   studentId: string;
   studentHandle?: string;
   studentName?: string;
+  studentAvatar?: string;
   cfSubmissionId: number;
   contestId?: number | null;
   problemIndex: string;
@@ -196,6 +197,9 @@ export interface SubmissionRecord {
   verdict: string;
   language: string;
   submittedAt: string;
+  timeConsumedMillis?: number;
+  memoryConsumedBytes?: number;
+  passedTestCount?: number;
 }
 
 export interface ContestRecord {
@@ -257,6 +261,73 @@ export interface TeacherProfileOverview {
   tagStats: Record<string, number>;
 }
 
+export interface TopicStrength {
+  topic: string;
+  successRate: number;
+  totalAttempts: number;
+  solved: number;
+  failed: number;
+  status: 'mastered' | 'practicing' | 'needs_attention';
+}
+
+export interface RecommendedProblem {
+  name: string;
+  url: string;
+  fails: number;
+  solves: number;
+  rating: number;
+}
+
+export interface StudentComparisonRecord {
+  studentId: string;
+  name: string;
+  handle: string;
+  avatar?: string;
+  rating: number;
+  maxRating?: number;
+  rank: string;
+  solvedCount: number;
+  totalSubmissions: number;
+  accuracyRate: number;
+  recentRatingChange: number;
+  lastActive: string | null;
+  topTag: string;
+}
+
+export interface DailyActivityRecord {
+  date: string;
+  count: number;
+  solved: number;
+  failed: number;
+}
+
+export interface HourlyActivityRecord {
+  hour: number;
+  label: string;
+  count: number;
+}
+
+export interface VerdictDistributionRecord {
+  verdict: string;
+  label: string;
+  count: number;
+  percentage: number;
+  color: string;
+}
+
+export interface DifficultyDistributionRecord {
+  range: string;
+  count: number;
+  solved: number;
+  failed: number;
+}
+
+export interface LanguageDistributionRecord {
+  language: string;
+  count: number;
+  percentage: number;
+}
+
 export interface ClassSummary {
   totalStudents: number;
   activeStudents: number;
@@ -279,6 +350,32 @@ export interface ClassSummary {
     currentRating: number;
   }>;
   recentActivity: SubmissionRecord[];
+  verdictDistribution?: VerdictDistributionRecord[];
+  difficultyDistribution?: DifficultyDistributionRecord[];
+  dailyActivity?: DailyActivityRecord[];
+  hourlyActivity?: HourlyActivityRecord[];
+  languageDistribution?: LanguageDistributionRecord[];
+  topicStrengths?: TopicStrength[];
+  weakTopics?: Array<{
+    topic: string;
+    successRate: number;
+    totalAttempts: number;
+  }>;
+  recommendedProblems?: RecommendedProblem[];
+  studentComparison?: StudentComparisonRecord[];
+  statsSummary?: {
+    accuracyRate: number;
+    totalSubmissions: number;
+    activeCodersStreak: number;
+    hardestProblemSolved: {
+      name: string;
+      rating: number;
+      solvedBy: string;
+      url: string;
+    } | null;
+    fastestSolveTimeMs: number | null;
+    peakHourLabel: string;
+  };
 }
 
 export interface TeacherDashboardResponse {
