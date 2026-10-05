@@ -154,6 +154,35 @@ button:active:not(:disabled), a.button-interactive:active, .interactive-item:act
   font-variant-numeric: tabular-nums;
 }
 
+/* Apple Typography Foundations: Optical Sizing & Dynamic Tracking */
+h1, h2, h3, .heading-display {
+  letter-spacing: -0.025em; /* Negative tracking for large text */
+  line-height: 1.15;
+}
+
+.caption-label {
+  letter-spacing: 0.04em; /* Positive tracking for small uppercase labels */
+  text-transform: uppercase;
+}
+
+/* Apple Vibrancy on Translucent Surfaces */
+.apple-vibrancy {
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Accessibility: Prefers Reduced Transparency */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel,
+  .glass-panel-elevated,
+  .glass-card,
+  .glass-card-interactive {
+    background: #0d111c !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
