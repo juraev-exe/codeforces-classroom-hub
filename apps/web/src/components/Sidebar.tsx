@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Radio,
   Zap,
+  Settings,
 } from 'lucide-react';
 
 interface NavItem {
@@ -54,6 +55,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/join', label: 'Student Join', icon: Link2 },
       { href: '/telegram', label: 'Telegram Bot', icon: Bot, badge: 'Live', badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+      { href: '/settings', label: 'Settings', icon: Settings },
     ],
   },
 ];

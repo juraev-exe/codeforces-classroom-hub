@@ -189,6 +189,7 @@ export default function StudentsPage() {
         } catch {}
       }
 
+      setStudents((prev) => prev.filter((s) => s.id !== id && s.codeforcesHandle.toLowerCase() !== handle.toLowerCase()));
       await loadData();
     } catch (err: any) {
       alert(`Delete failed: ${err.message}`);

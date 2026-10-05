@@ -38,6 +38,7 @@ import {
   FileCode,
   ArrowUpRight,
   CheckCheck,
+  Download,
 } from 'lucide-react';
 import {
   BarChart,
@@ -51,9 +52,12 @@ import {
   Pie,
   AreaChart,
   Area,
+  LineChart,
+  Line,
   CartesianGrid,
   Legend,
 } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 import { fetchApi } from '@/lib/api';
 import {
   getRankColor,
@@ -146,11 +150,115 @@ function AnalyticsContent() {
 
   // Copy state
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   function copyCode(key: string, text: string) {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
+  }
+
+  function downloadCsv(filename: string, headers: string[], rows: (string | number)[][]) {
+    const escapeCsv = (val: string | number) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+    const content = [
+      headers.map(escapeCsv).join(','),
+      ...rows.map((row) => row.map(escapeCsv).join(',')),
+    ].join('\r\n');
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function exportStudentSummary() {
+    if (!summary?.studentComparison || summary.studentComparison.length === 0) return;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const headers = [
+      'Name',
+      'Codeforces Handle',
+      'Current Rating',
+      'Max Rating',
+      'Rank Title',
+      'Problems Solved',
+      'Total Submissions',
+      'Accuracy Rate (%)',
+      'Recent Rating Change',
+      'Top Skill',
+      'Last Active',
+    ];
+    const rows = summary.studentComparison.map((s) => [
+      s.name,
+      s.handle,
+      s.rating,
+      s.maxRating || s.rating,
+      s.rank,
+      s.solvedCount,
+      s.totalSubmissions,
+      s.accuracyRate,
+      s.recentRatingChange,
+      s.topTag || 'General',
+      s.lastActive || '—',
+    ]);
+    downloadCsv(`cf-students-telemetry-${dateStr}.csv`, headers, rows);
+    setExportOpen(false);
+  }
+
+  function exportActivityLogs() {
+    const activities = filteredActivities.length > 0 ? filteredActivities : summary?.recentActivity;
+    if (!activities || activities.length === 0) return;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const headers = [
+      'Timestamp',
+      'Student Name',
+      'Codeforces Handle',
+      'Problem ID',
+      'Problem Name',
+      'Problem Rating',
+      'Verdict',
+      'Execution Time (ms)',
+      'Tags',
+    ];
+    const rows = activities.map((s) => [
+      s.submittedAt ? new Date(s.submittedAt).toISOString() : '—',
+      s.studentName || '—',
+      s.studentHandle || '—',
+      s.contestId ? `${s.contestId}${s.problemIndex}` : (s.problemIndex || '—'),
+      s.problemName || '—',
+      s.problemRating || 'Unrated',
+      s.verdict || '—',
+      s.timeConsumedMillis ?? '—',
+      (s.tags || []).join('; '),
+    ]);
+    downloadCsv(`cf-submissions-log-${dateStr}.csv`, headers, rows);
+    setExportOpen(false);
+  }
+
+  function exportTopicMastery() {
+    if (!summary?.topicStrengths || summary.topicStrengths.length === 0) return;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const headers = [
+      'Topic / Tag',
+      'Status',
+      'Success Rate (%)',
+      'Problems Solved',
+      'Failed Attempts',
+      'Total Submissions',
+    ];
+    const rows = summary.topicStrengths.map((t) => [
+      t.topic,
+      t.status,
+      t.successRate,
+      t.solved,
+      t.failed,
+      t.totalAttempts,
+    ]);
+    downloadCsv(`cf-topic-mastery-${dateStr}.csv`, headers, rows);
+    setExportOpen(false);
   }
 
   async function loadData() {
@@ -385,6 +493,60 @@ function AnalyticsContent() {
               <RefreshCw className="w-4 h-4 text-blue-400" />
               <span className="hidden sm:inline">Refresh</span>
             </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setExportOpen((prev) => !prev)}
+                className="p-2.5 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 hover:text-emerald-200 border border-emerald-500/20 transition flex items-center gap-1.5 text-xs font-medium"
+                title="Export telemetry data as CSV"
+              >
+                <Download className="w-4 h-4 text-emerald-400" />
+                <span className="hidden sm:inline">Export CSV</span>
+              </button>
+
+              <AnimatePresence>
+                {exportOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setExportOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                      transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+                      className="absolute right-0 mt-2 w-64 glass-panel bg-zinc-950/95 border border-white/10 rounded-2xl shadow-2xl p-1.5 z-50 space-y-0.5 backdrop-blur-xl origin-top-right"
+                    >
+                      <div className="px-3 py-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                        Download CSV Reports
+                      </div>
+                      <button
+                        onClick={exportStudentSummary}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-white/[0.08] transition flex items-center justify-between"
+                      >
+                        <span>Student Roster & Stats</span>
+                        <span className="text-[10px] text-zinc-400 font-mono">.csv</span>
+                      </button>
+                      <button
+                        onClick={exportActivityLogs}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-white/[0.08] transition flex items-center justify-between"
+                      >
+                        <span>Submissions Activity Log</span>
+                        <span className="text-[10px] text-zinc-400 font-mono">.csv</span>
+                      </button>
+                      <button
+                        onClick={exportTopicMastery}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs text-zinc-200 hover:text-white hover:bg-white/[0.08] transition flex items-center justify-between"
+                      >
+                        <span>Topic Mastery Diagnostic</span>
+                        <span className="text-[10px] text-zinc-400 font-mono">.csv</span>
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
@@ -481,69 +643,56 @@ function AnalyticsContent() {
 
       {/* Navigation View Tabs */}
       <div className="flex items-center gap-1.5 p-1.5 rounded-2xl glass-panel border border-white/[0.08] overflow-x-auto custom-scrollbar">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-            activeTab === 'overview'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
-          }`}
-        >
-          <BarChart3 className="w-4 h-4" />
-          <span>Executive Overview</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('activities')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-            activeTab === 'activities'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
-          }`}
-        >
-          <Activity className="w-4 h-4" />
-          <span>Activity Stream & Explorer</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-white/20 text-white font-mono">
-            {summary.recentActivity?.length || 0}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('mastery')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-            activeTab === 'mastery'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
-          }`}
-        >
-          <Target className="w-4 h-4" />
-          <span>Algorithm & Topic Mastery</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('students')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-            activeTab === 'students'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>Student Comparison</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('productivity')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
-            activeTab === 'productivity'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          <span>Productivity & Velocity</span>
-        </button>
+        {[
+          { id: 'overview' as const, label: 'Executive Overview', icon: BarChart3 },
+          { id: 'activities' as const, label: 'Activity Stream & Explorer', icon: Activity, count: summary.recentActivity?.length || 0 },
+          { id: 'mastery' as const, label: 'Algorithm & Topic Mastery', icon: Target },
+          { id: 'students' as const, label: 'Student Comparison', icon: Users },
+          { id: 'productivity' as const, label: 'Productivity & Velocity', icon: Clock },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap ${
+                isActive ? 'text-white' : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="activeAnalyticsTab"
+                  className="absolute inset-0 bg-blue-600 rounded-xl shadow-lg shadow-blue-600/30"
+                  transition={{ type: 'spring', duration: 0.25, bounce: 0.15 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-2">
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-white/10 text-zinc-300'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </span>
+            </button>
+          );
+        })}
       </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+        >
 
       {/* ============================================================ */}
       {/* TAB 1: EXECUTIVE OVERVIEW */}
@@ -1408,6 +1557,90 @@ function AnalyticsContent() {
       {/* ============================================================ */}
       {activeTab === 'students' && (
         <div className="space-y-6">
+          {/* Multi-Student Rating Evolution Chart */}
+          {(summary as any).ratingEvolution && (summary as any).ratingEvolution.length > 0 && (
+            <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/[0.08] shadow-2xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white tracking-tight">
+                      Historical Rating Evolution Trajectory
+                    </h2>
+                    <p className="text-xs text-zinc-400">
+                      Comparative multi-student rating growth curves across official Codeforces contest rounds
+                    </p>
+                  </div>
+                </div>
+
+                {/* Legend badges */}
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {((summary as any).studentCurves || []).map((sc: any) => (
+                    <div
+                      key={sc.handle}
+                      className="px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/10 flex items-center gap-2 font-mono text-[11px]"
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: sc.color }}
+                      />
+                      <span className="text-zinc-200">@{sc.handle}</span>
+                      <span className="text-zinc-400">({sc.rating})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-72 w-full pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={(summary as any).ratingEvolution || []}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                    <XAxis
+                      dataKey="date"
+                      stroke="#71717a"
+                      fontSize={11}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      stroke="#71717a"
+                      fontSize={11}
+                      domain={['auto', 'auto']}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(15, 18, 28, 0.95)',
+                        borderColor: 'rgba(255, 255, 255, 0.12)',
+                        borderRadius: '14px',
+                        backdropFilter: 'blur(12px)',
+                        fontSize: '12px',
+                      }}
+                      labelFormatter={(label, payload) => {
+                        const contest = payload?.[0]?.payload?.contestName;
+                        return contest ? `${contest} (${label})` : label;
+                      }}
+                    />
+                    {((summary as any).studentCurves || []).map((sc: any) => (
+                      <Line
+                        key={sc.handle}
+                        type="monotone"
+                        dataKey={sc.handle}
+                        name={`@${sc.handle}`}
+                        stroke={sc.color}
+                        strokeWidth={2.5}
+                        dot={{ r: 3, fill: sc.color }}
+                        activeDot={{ r: 6 }}
+                        connectNulls
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
           <div className="glass-panel rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden">
             <div className="p-6 border-b border-white/[0.06]">
               <div className="flex items-center gap-2.5">
@@ -1628,6 +1861,8 @@ function AnalyticsContent() {
           </div>
         </div>
       )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

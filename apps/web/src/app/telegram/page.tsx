@@ -1,8 +1,92 @@
 'use client';
 
-import { Bot, Shield, Send, Terminal, CheckCircle2, AlertTriangle, Key, Zap, Bell } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import {
+  Bot,
+  Shield,
+  Send,
+  Terminal,
+  CheckCircle2,
+  AlertTriangle,
+  Key,
+  Zap,
+  Bell,
+  RefreshCw,
+  ExternalLink,
+  ShieldCheck,
+  CloudLightning,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function TelegramBotPage() {
+  const [webhookInfo, setWebhookInfo] = useState<any>(null);
+  const [testingPing, setTestingPing] = useState(false);
+  const [syncingWebhook, setSyncingWebhook] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{
+    type: 'success' | 'error' | 'info';
+    text: string;
+  } | null>(null);
+
+  function triggerStatus(type: 'success' | 'error' | 'info', text: string) {
+    setStatusMessage({ type, text });
+    setTimeout(() => {
+      setStatusMessage(null);
+    }, 4500);
+  }
+
+  useEffect(() => {
+    fetchWebhookInfo();
+  }, []);
+
+  async function fetchWebhookInfo() {
+    try {
+      const res = await fetch('/api/telegram/webhook?action=info');
+      const data = await res.json();
+      if (data.ok && data.result) {
+        setWebhookInfo(data.result);
+      }
+    } catch {}
+  }
+
+  async function handleTestPing() {
+    try {
+      setTestingPing(true);
+      const res = await fetch('/api/telegram/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'test' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerStatus('success', 'Ping notification dispatched successfully to Telegram! ✅');
+      } else {
+        triggerStatus('error', data.error || 'Failed to dispatch test notification');
+      }
+    } catch {
+      triggerStatus('error', 'Network error during Telegram ping');
+    } finally {
+      setTestingPing(false);
+    }
+  }
+
+  async function handleSyncWebhook() {
+    try {
+      setSyncingWebhook(true);
+      const res = await fetch('/api/telegram/webhook?action=set');
+      const data = await res.json();
+      if (data.success) {
+        triggerStatus('success', '24/7 Cloud Webhook linked to Vercel! Works even when your PC is turned off. 🚀');
+        fetchWebhookInfo();
+      } else {
+        triggerStatus('error', data.telegram?.description || 'Failed to link webhook with Telegram');
+      }
+    } catch {
+      triggerStatus('error', 'Error syncing webhook');
+    } finally {
+      setSyncingWebhook(false);
+    }
+  }
+
   const commands = [
     { command: '/my', desc: "Show teacher's Codeforces live statistics and rating" },
     { command: '/class', desc: 'Display classroom analytics, active count, and average rating' },
@@ -13,11 +97,35 @@ export default function TelegramBotPage() {
     { command: '/rating <handle>', desc: "Look up any Codeforces user's rating & tier" },
     { command: '/progress <handle>', desc: 'View recent rating changes and trends for a student' },
     { command: '/problems <handle>', desc: 'Breakdown of solved problem tags and practice recommendations' },
+    { command: '/add <handle> [name]', desc: 'Enroll a new student directly from Telegram' },
+    { command: '/ai <prompt>', desc: 'Ask the AI teaching assistant any algorithm or classroom question' },
     { command: '/help', desc: 'List all commands and usage guide' },
   ];
 
   return (
-    <div className="space-y-7 max-w-4xl mx-auto">
+    <div className="space-y-7 max-w-4xl mx-auto pb-16">
+      {/* Toast Alert Feedback */}
+      <AnimatePresence>
+        {statusMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -16, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.95 }}
+            className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-2xl shadow-2xl border text-xs font-semibold flex items-center gap-3 backdrop-blur-xl ${
+              statusMessage.type === 'success'
+                ? 'bg-emerald-950/90 text-emerald-200 border-emerald-500/30'
+                : statusMessage.type === 'error'
+                ? 'bg-rose-950/90 text-rose-200 border-rose-500/30'
+                : 'bg-blue-950/90 text-blue-200 border-blue-500/30'
+            }`}
+          >
+            {statusMessage.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+            {statusMessage.type === 'error' && <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />}
+            <span>{statusMessage.text}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Top Header Card */}
       <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/[0.08] relative overflow-hidden">
         <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -41,55 +149,62 @@ export default function TelegramBotPage() {
         </div>
       </div>
 
-      {/* Setup Guide */}
-      <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/[0.08] space-y-5 shadow-2xl">
-        <h2 className="text-base font-bold text-white flex items-center gap-2 tracking-tight">
-          <Key className="w-4 h-4 text-amber-400" />
-          Setup & Bot Pairing
-        </h2>
-
-        <div className="space-y-3.5 text-xs text-zinc-300">
-          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-start gap-3.5">
-            <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-              1
-            </span>
-            <div>
-              <p className="font-semibold text-white text-sm">Create your Bot on Telegram</p>
-              <p className="text-zinc-400 mt-1 leading-relaxed">
-                Open Telegram, message <span className="text-blue-400 font-mono font-medium">@BotFather</span>, and send{' '}
-                <span className="font-mono bg-white/[0.08] px-1.5 py-0.5 rounded text-zinc-200">/newbot</span> to generate your secure Bot API Token.
-              </p>
+      {/* 24/7 Cloud Architecture & Webhook Live Card */}
+      <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/[0.08] shadow-2xl space-y-5 bg-gradient-to-br from-blue-950/30 via-zinc-950/60 to-purple-950/20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
+              <CloudLightning className="w-5 h-5" />
             </div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-start gap-3.5">
-            <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-              2
-            </span>
-            <div className="w-full">
-              <p className="font-semibold text-white text-sm">Store Token in Environment</p>
-              <p className="text-zinc-400 mt-1">
-                Add your bot token and your Telegram User ID into your server environment configuration:
-              </p>
-              <div className="mt-2.5 p-3 rounded-xl bg-black/60 text-xs font-mono text-emerald-400 border border-white/10 overflow-x-auto">
-                TELEGRAM_BOT_TOKEN="your_bot_token_here"<br />
-                TELEGRAM_ADMIN_IDS="your_telegram_numeric_id"
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <h2 className="text-base font-bold text-white tracking-tight">
+                  24/7 Cloud Architecture Active
+                </h2>
               </div>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                The bot runs continuously on Vercel Edge Serverless functions. It works 24/7 without needing your personal computer to stay on.
+              </p>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-start gap-3.5">
-            <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-              3
-            </span>
-            <div>
-              <p className="font-semibold text-white text-sm">Security & Access Whitelist</p>
-              <p className="text-zinc-400 mt-1 leading-relaxed">
-                Only Telegram User IDs specified in <span className="font-mono text-zinc-300 bg-white/[0.05] px-1 py-0.5 rounded">TELEGRAM_ADMIN_IDS</span> can trigger queries. If an unrecognized user pings your bot, it securely outputs their Telegram ID to simplify whitelisting.
-              </p>
-            </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href="https://t.me/CodeForcesStudents_Bot"
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-semibold text-xs shadow-lg shadow-blue-600/30 transition flex items-center gap-1.5"
+            >
+              <Bot className="w-4 h-4" />
+              <span>Open @CodeForcesStudents_Bot</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+
+            <button
+              onClick={handleSyncWebhook}
+              disabled={syncingWebhook}
+              className="px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 disabled:opacity-50 text-zinc-300 font-semibold text-xs border border-white/10 transition flex items-center gap-1.5"
+              title="Re-verify webhook URL with Telegram API"
+            >
+              {syncingWebhook ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />}
+              <span>Sync Webhook</span>
+            </button>
           </div>
         </div>
+
+        {webhookInfo && (
+          <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 flex flex-wrap items-center justify-between text-xs font-mono text-zinc-300 gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-zinc-500">Destination:</span>
+              <span className="text-blue-400 truncate max-w-sm">{webhookInfo.url || 'No webhook set'}</span>
+            </div>
+            <div className="flex items-center gap-4 text-[11px] text-zinc-400">
+              <span>Pending Updates: <strong className="text-white font-bold">{webhookInfo.pending_update_count || 0}</strong></span>
+              {webhookInfo.ip_address && <span>Vercel Edge IP: <strong className="text-white">{webhookInfo.ip_address}</strong></span>}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Available Commands */}
@@ -125,7 +240,7 @@ export default function TelegramBotPage() {
               Contest Reminders (30m Alert)
             </h3>
             <p className="text-zinc-400 leading-relaxed">
-              The backend background cron checks upcoming Codeforces rounds every 10 minutes and automatically sends a high-priority push reminder 30 minutes before round kickoff.
+              The backend checks upcoming Codeforces rounds and automatically sends a high-priority push reminder 30 minutes before round kickoff with direct registration links.
             </p>
           </div>
 

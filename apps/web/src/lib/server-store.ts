@@ -97,9 +97,42 @@ const INITIAL_STUDENTS: StudentData[] = [
   },
 ];
 
+export interface AppSettings {
+  teacherName: string;
+  teacherHandle: string;
+  teacherTitle?: string;
+  acmpId?: string;
+  telegramBotToken?: string;
+  telegramAdminIds?: string;
+  contestAlertEnabled: boolean;
+  contestAlertMinutesBefore: number;
+  ratingDigestEnabled: boolean;
+  pollIntervalMinutes: number;
+  cfApiKey?: string;
+  cfApiSecret?: string;
+  lastNotifiedContestIds?: (string | number)[];
+}
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  teacherName: 'Abubakr Juraev',
+  teacherHandle: 'AbubakrJ',
+  teacherTitle: 'Lead Algorithms & CP Coach',
+  acmpId: '515125',
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '8844111620:AAGJ5RP8hCm9-q0b5ONFfFt4Ons5ZZJE3bo',
+  telegramAdminIds: process.env.TELEGRAM_ADMIN_IDS || '',
+  contestAlertEnabled: true,
+  contestAlertMinutesBefore: 30,
+  ratingDigestEnabled: true,
+  pollIntervalMinutes: 30,
+  cfApiKey: process.env.CODEFORCES_API_KEY || '',
+  cfApiSecret: process.env.CODEFORCES_API_SECRET || '',
+  lastNotifiedContestIds: [],
+};
+
 interface StoreSchema {
   classes: ClassroomData[];
   students: StudentData[];
+  settings?: AppSettings;
 }
 
 function loadStore(): StoreSchema {
@@ -108,13 +141,21 @@ function loadStore(): StoreSchema {
       const data = fs.readFileSync(STORAGE_FILE, 'utf-8');
       const parsed = JSON.parse(data);
       if (Array.isArray(parsed.classes) && Array.isArray(parsed.students)) {
-        return parsed;
+        return {
+          classes: parsed.classes,
+          students: parsed.students,
+          settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
+        };
       }
     }
   } catch (err) {
     console.warn('Could not read persistent store, using initial data:', err);
   }
-  return { classes: [...INITIAL_CLASSES], students: [...INITIAL_STUDENTS] };
+  return {
+    classes: [...INITIAL_CLASSES],
+    students: [...INITIAL_STUDENTS],
+    settings: { ...DEFAULT_SETTINGS },
+  };
 }
 
 function saveStore(data: StoreSchema) {
@@ -127,6 +168,54 @@ function saveStore(data: StoreSchema) {
 
 // In-memory cache
 let memoryStore = loadStore();
+
+export async function sendTelegramNotification(
+  text: string,
+  customChatId?: string
+): Promise<{ success: boolean; error?: string }> {
+  const settings = { ...DEFAULT_SETTINGS, ...(memoryStore.settings || {}) };
+  const token = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN || '8844111620:AAGJ5RP8hCm9-q0b5ONFfFt4Ons5ZZJE3bo';
+  const chatIds = customChatId
+    ? [customChatId]
+    : (settings.telegramAdminIds || process.env.TELEGRAM_ADMIN_IDS || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+  if (chatIds.length === 0) {
+    return { success: false, error: 'No Telegram recipient chat ID configured' };
+  }
+
+  let lastError = '';
+  let delivered = 0;
+
+  for (const chatId of chatIds) {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text,
+          parse_mode: 'Markdown',
+          disable_web_page_preview: false,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        lastError = data.description || `HTTP ${res.status}`;
+      } else {
+        delivered++;
+      }
+    } catch (e: any) {
+      lastError = e.message;
+    }
+  }
+
+  return delivered > 0
+    ? { success: true }
+    : { success: false, error: lastError || 'Failed to dispatch Telegram message' };
+}
 
 export async function fetchCF<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
   const query = new URLSearchParams(params).toString();
@@ -171,16 +260,7 @@ export const serverStore = {
             contestParticipations: row.contest_participations || row.contestParticipations || [],
           }));
 
-          const handleMap = new Map<string, StudentData>();
-          for (const s of fetched) {
-            handleMap.set(s.codeforcesHandle.toLowerCase(), s);
-          }
-          for (const s of INITIAL_STUDENTS) {
-            if (!handleMap.has(s.codeforcesHandle.toLowerCase())) {
-              handleMap.set(s.codeforcesHandle.toLowerCase(), s);
-            }
-          }
-          memoryStore.students = Array.from(handleMap.values());
+          memoryStore.students = fetched;
           saveStore(memoryStore);
         } else {
           // If Supabase table exists but is empty, seed initial teacher student
@@ -396,16 +476,23 @@ export const serverStore = {
 
   async deleteStudent(idOrHandle: string): Promise<boolean> {
     const target = idOrHandle.trim().toLowerCase();
+    const existing = memoryStore.students.find(
+      (s) => s.id.toLowerCase() === target || s.codeforcesHandle.toLowerCase() === target
+    );
+    const handle = existing ? existing.codeforcesHandle.toLowerCase() : target;
 
     // Remove permanently from Supabase cloud database
     let supabaseDeleted = false;
     try {
-      const { data } = await supabase
-        .from('students')
-        .delete()
-        .or(`codeforces_handle.ilike.${target},id.eq.${idOrHandle}`)
-        .select();
-      if (data && data.length > 0) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrHandle);
+      let query = supabase.from('students').delete();
+      if (isUuid) {
+        query = query.or(`codeforces_handle.ilike.${handle},id.eq.${idOrHandle}`);
+      } else {
+        query = query.ilike('codeforces_handle', handle);
+      }
+      const { data, error } = await query.select();
+      if (!error && data && data.length > 0) {
         supabaseDeleted = true;
       }
     } catch (err) {
@@ -415,7 +502,7 @@ export const serverStore = {
     // Also remove from in-memory cache and local file
     const initialLen = memoryStore.students.length;
     memoryStore.students = memoryStore.students.filter(
-      (s) => s.id !== idOrHandle && s.codeforcesHandle.toLowerCase() !== target
+      (s) => s.id.toLowerCase() !== target && s.codeforcesHandle.toLowerCase() !== target
     );
     const memoryDeleted = memoryStore.students.length < initialLen;
     saveStore(memoryStore);
@@ -473,6 +560,32 @@ export const serverStore = {
         submittedAt: new Date((s.creationTimeSeconds || 0) * 1000).toISOString(),
       }));
 
+      // Fetch contest rating history
+      try {
+        const ratingChanges = await fetchCF<any[]>('user.rating', {
+          handle: student.codeforcesHandle,
+        });
+        if (Array.isArray(ratingChanges)) {
+          student.contestParticipations = ratingChanges.map((rc) => ({
+            id: `cp-${rc.contestId}-${student.id}`,
+            contestId: rc.contestId,
+            contest: {
+              id: rc.contestId,
+              name: rc.contestName,
+              startTime: new Date((rc.ratingUpdateTimeSeconds || 0) * 1000).toISOString(),
+            },
+            rank: rc.rank,
+            oldRating: rc.oldRating,
+            newRating: rc.newRating,
+            ratingDelta: rc.newRating - rc.oldRating,
+            ratingUpdateTime: new Date((rc.ratingUpdateTimeSeconds || 0) * 1000).toISOString(),
+          }));
+          if (student.stats) {
+            student.stats.contestCount = ratingChanges.length;
+          }
+        }
+      } catch (e) {}
+
       saveStore(memoryStore);
 
       // Update in Supabase
@@ -482,6 +595,7 @@ export const serverStore = {
           .update({
             stats: student.stats,
             submissions: student.submissions,
+            contest_participations: student.contestParticipations,
             updated_at: new Date().toISOString(),
           })
           .eq('codeforces_handle', student.codeforcesHandle);
@@ -508,7 +622,9 @@ export const serverStore = {
       );
     }
 
-    const handle = 'AbubakrJ';
+    const settings = this.getSettings();
+    const handle = settings.teacherHandle || 'AbubakrJ';
+    const teacherName = settings.teacherName || 'Abubakr Juraev';
     let rating = 693;
     let rank = 'newbie';
     let maxRating = 693;
@@ -540,8 +656,8 @@ export const serverStore = {
       teacherSubmissions = (subs || []).slice(0, 40).map((s: any) => ({
         id: String(s.id),
         studentId: '46427f87-007e-4327-bca3-e9e9b3056a9c',
-        studentHandle: 'AbubakrJ',
-        studentName: 'Abubakr Juraev',
+        studentHandle: handle,
+        studentName: teacherName,
         cfSubmissionId: s.id,
         contestId: s.contestId || s.problem?.contestId || null,
         problemIndex: s.problem?.index || 'A',
@@ -638,9 +754,10 @@ export const serverStore = {
 
     return {
       teacher: {
-        name: 'Abubakr Juraev',
+        name: teacherName,
         email: 'teacher@classroom.cf',
-        handle: 'AbubakrJ',
+        handle,
+        title: settings.teacherTitle || 'Lead Algorithms & CP Coach',
         rating,
         rank,
         maxRating,
@@ -652,13 +769,13 @@ export const serverStore = {
         recentSubmissions: teacherSubmissions,
         tagStats: {},
         acmp: {
-          id: '515125',
-          name: 'Джураев Абубакр',
+          id: settings.acmpId || '515125',
+          name: teacherName,
           rating: 984,
           rank: '25494 / 310311',
           solvedCount: 79,
           unsolvedCount: 5,
-          url: 'https://acmp.ru/index.asp?main=user&id=515125',
+          url: `https://acmp.ru/index.asp?main=user&id=${settings.acmpId || '515125'}`,
           course: 'Язык программирования C++ (29%)',
         },
       },
@@ -1096,6 +1213,67 @@ export const serverStore = {
       };
     });
 
+    // Multi-student Historical Rating Evolution Trajectory
+    const timelineMap = new Map<string, { date: string; timestamp: number; contestName: string; ratings: Record<string, number> }>();
+    for (const s of active) {
+      if (Array.isArray(s.contestParticipations) && s.contestParticipations.length > 0) {
+        for (const cp of s.contestParticipations) {
+          const dateStr = cp.contest?.startTime || cp.ratingUpdateTime || new Date().toISOString();
+          const timestamp = new Date(dateStr).getTime();
+          const shortDate = new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const contestKey = `${cp.contestId || cp.id}-${shortDate}`;
+
+          if (!timelineMap.has(contestKey)) {
+            timelineMap.set(contestKey, {
+              date: shortDate,
+              timestamp,
+              contestName: cp.contest?.name || cp.contestName || `Contest #${cp.contestId}`,
+              ratings: {},
+            });
+          }
+          timelineMap.get(contestKey)!.ratings[s.codeforcesHandle] = cp.newRating;
+        }
+      } else if (s.stats?.rating) {
+        const shortDate = 'Current';
+        const contestKey = `current-${s.id}`;
+        if (!timelineMap.has(contestKey)) {
+          timelineMap.set(contestKey, {
+            date: shortDate,
+            timestamp: Date.now(),
+            contestName: 'Current Rating',
+            ratings: {},
+          });
+        }
+        timelineMap.get(contestKey)!.ratings[s.codeforcesHandle] = s.stats.rating;
+      }
+    }
+
+    const sortedTimeline = Array.from(timelineMap.values()).sort((a, b) => a.timestamp - b.timestamp);
+    const lastRating: Record<string, number> = {};
+    const ratingEvolution = sortedTimeline.map((item) => {
+      const point: Record<string, any> = {
+        date: item.date,
+        contestName: item.contestName,
+      };
+      for (const s of active) {
+        if (item.ratings[s.codeforcesHandle] !== undefined) {
+          lastRating[s.codeforcesHandle] = item.ratings[s.codeforcesHandle];
+        }
+        if (lastRating[s.codeforcesHandle] !== undefined) {
+          point[s.codeforcesHandle] = lastRating[s.codeforcesHandle];
+        }
+      }
+      return point;
+    });
+
+    const COLOR_PALETTE = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316'];
+    const studentCurves = active.map((s, idx) => ({
+      handle: s.codeforcesHandle,
+      name: s.name,
+      rating: s.stats?.rating || 0,
+      color: COLOR_PALETTE[idx % COLOR_PALETTE.length],
+    }));
+
     const overallAccuracy =
       totalSubsLogged > 0
         ? Math.round(((verdictCounts.OK || 0) / totalSubsLogged) * 100)
@@ -1123,6 +1301,8 @@ export const serverStore = {
       recentActivity,
       mostImprovedStudents,
       studentComparison,
+      ratingEvolution,
+      studentCurves,
       statsSummary: {
         accuracyRate: overallAccuracy,
         totalSubmissions: totalSubsLogged,
@@ -1176,5 +1356,106 @@ export const serverStore = {
     } catch {
       return [];
     }
+  },
+
+  getSettings(): AppSettings {
+    if (!memoryStore.settings) {
+      memoryStore.settings = { ...DEFAULT_SETTINGS };
+    }
+    return { ...DEFAULT_SETTINGS, ...memoryStore.settings };
+  },
+
+  updateSettings(partial: Partial<AppSettings>): AppSettings {
+    const current = this.getSettings();
+    const updated: AppSettings = { ...current, ...partial };
+    memoryStore.settings = updated;
+    saveStore(memoryStore);
+    return updated;
+  },
+
+  getStorageHealth() {
+    let fileSize = 0;
+    try {
+      if (fs.existsSync(STORAGE_FILE)) {
+        fileSize = fs.statSync(STORAGE_FILE).size;
+      }
+    } catch {}
+
+    const totalStudents = memoryStore.students.length;
+    const totalClasses = memoryStore.classes.length;
+    const totalSubmissions = memoryStore.students.reduce(
+      (acc, s) => acc + (s.submissions?.length || 0),
+      0
+    );
+
+    return {
+      storageFile: path.basename(STORAGE_FILE),
+      storagePath: STORAGE_FILE,
+      fileSizeBytes: fileSize,
+      fileSizeFormatted: `${(fileSize / 1024).toFixed(1)} KB`,
+      totalStudents,
+      totalClasses,
+      totalSubmissions,
+      supabaseConfigured: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    };
+  },
+
+  async clearCache(): Promise<void> {
+    for (const student of memoryStore.students) {
+      student.submissions = [];
+      student.contestParticipations = [];
+    }
+    saveStore(memoryStore);
+  },
+
+  async checkContestAlerts(): Promise<{ alerted: any[]; skipped: any[] }> {
+    const settings = this.getSettings();
+    if (!settings.contestAlertEnabled) {
+      return { alerted: [], skipped: [] };
+    }
+
+    const upcoming = await this.getUpcomingContests();
+    const notifiedIds = new Set((settings.lastNotifiedContestIds || []).map(String));
+    const minutesThreshold = settings.contestAlertMinutesBefore || 30;
+
+    const alerted: any[] = [];
+    const skipped: any[] = [];
+    const now = Math.floor(Date.now() / 1000);
+
+    for (const contest of upcoming) {
+      const contestId = String(contest.codeforcesContestId || contest.id);
+      const startTime = Math.floor(new Date(contest.startTime).getTime() / 1000);
+      const minutesRemaining = Math.floor((startTime - now) / 60);
+
+      if (minutesRemaining > 0 && minutesRemaining <= minutesThreshold + 5) {
+        if (!notifiedIds.has(contestId)) {
+          const durationHours = Math.floor(contest.durationSeconds / 3600);
+          const durationMinutes = Math.floor((contest.durationSeconds % 3600) / 60);
+          const durationStr = `${durationHours}h ${durationMinutes > 0 ? `${durationMinutes}m` : ''}`.trim();
+
+          const message = 
+`🏆 *CODEFORCES CONTEST REMINDER*
+
+*${contest.name}*
+
+⏰ Starts in: ~${minutesRemaining} minutes
+⏱ Duration: ${durationStr}
+🔗 [Contest Registration](https://codeforces.com/contestRegistration/${contestId})
+
+Good luck to all students! 🚀`;
+
+          await sendTelegramNotification(message);
+          notifiedIds.add(contestId);
+          alerted.push({ contestId, name: contest.name, minutesRemaining });
+        } else {
+          skipped.push({ contestId, name: contest.name, reason: 'Already notified' });
+        }
+      } else {
+        skipped.push({ contestId, name: contest.name, reason: `${minutesRemaining}m remaining` });
+      }
+    }
+
+    this.updateSettings({ lastNotifiedContestIds: Array.from(notifiedIds) });
+    return { alerted, skipped };
   },
 };

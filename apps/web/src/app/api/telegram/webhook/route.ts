@@ -3,12 +3,20 @@ import { serverStore, fetchCF } from '@/lib/server-store';
 
 export const dynamic = 'force-dynamic';
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8844111620:AAGJ5RP8hCm9-q0b5ONFfFt4Ons5ZZJE3bo';
-const WEB_URL = process.env.WEB_URL || 'https://codeforces-classroom-hub.vercel.app';
+function getBotToken(): string {
+  try {
+    const s = serverStore.getSettings();
+    if (s.telegramBotToken) return s.telegramBotToken;
+  } catch {}
+  return process.env.TELEGRAM_BOT_TOKEN || '8844111620:AAGJ5RP8hCm9-q0b5ONFfFt4Ons5ZZJE3bo';
+}
+
+const WEB_URL = (process.env.WEB_URL || 'https://codeforces-classroom-hub.vercel.app').replace(/\/+$/, '');
 
 async function sendTelegramMessage(chatId: number | string, text: string, extra: any = {}) {
   try {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    const token = getBotToken();
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -152,21 +160,33 @@ async function callAI(prompt: string): Promise<string> {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action');
+  const token = getBotToken();
 
   if (action === 'set') {
-    const webhookUrl = `${WEB_URL}/api/telegram/webhook`;
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
+    const customUrl = searchParams.get('url');
+    const webhookUrl = customUrl || `${WEB_URL}/api/telegram/webhook`;
+    const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
     const data = await res.json();
-    return NextResponse.json({ success: true, webhookUrl, telegram: data });
+    return NextResponse.json({ success: data.ok, webhookUrl, telegram: data });
+  }
+
+  if (action === 'delete' || action === 'unset') {
+    const res = await fetch(`https://api.telegram.org/bot${token}/deleteWebhook`);
+    const data = await res.json();
+    return NextResponse.json({ success: data.ok, telegram: data });
   }
 
   if (action === 'info') {
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`);
+    const res = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
     const data = await res.json();
     return NextResponse.json(data);
   }
 
-  return NextResponse.json({ status: 'Telegram webhook endpoint active', bot: '@CodeForcesStudents_Bot' });
+  return NextResponse.json({
+    status: 'Telegram webhook endpoint active',
+    bot: '@CodeForcesStudents_Bot',
+    cloudUrl: `${WEB_URL}/api/telegram/webhook`,
+  });
 }
 
 export async function POST(req: Request) {
