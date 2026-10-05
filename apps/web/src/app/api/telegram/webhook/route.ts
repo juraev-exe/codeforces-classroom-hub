@@ -28,8 +28,252 @@ async function sendTelegramMessage(chatId: number | string, text: string, extra:
       }),
     });
   } catch (err) {
-    console.error('Failed to send Telegram message:', err);
+    console.error('sendTelegramMessage error:', err);
   }
+}
+
+async function answerCallbackQuery(callbackQueryId: string, text?: string) {
+  try {
+    const token = getBotToken();
+    await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text,
+      }),
+    });
+  } catch {}
+}
+
+async function sendLeaderboardMsg(chatId: number | string) {
+  const leaderboard = serverStore.getLeaderboard();
+  if (leaderboard.length === 0) {
+    await sendTelegramMessage(chatId, `ℹ️ Leaderboard is currently empty.`);
+    return;
+  }
+  let msg = `🏆 *Classroom Standings & Leaderboard*\n\n`;
+  leaderboard.slice(0, 10).forEach((entry) => {
+    const medal = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`;
+    msg += `${medal} *${entry.name}* (@${entry.handle})\n   ⭐ Rating: *${entry.rating}* (${entry.rankTitle}) | Solved: ${entry.solvedCount}\n\n`;
+  });
+  msg += `🌐 [View Full Leaderboard](${WEB_URL}/leaderboard)`;
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '⚡ Next Contest', callback_data: 'cb_next' },
+          { text: '👥 Students Roster', callback_data: 'cb_students' },
+        ],
+        [{ text: '🌐 Open Web Leaderboard ↗️', url: `${WEB_URL}/leaderboard` }],
+      ],
+    },
+  });
+}
+
+async function sendNextContestMsg(chatId: number | string) {
+  const contests = await serverStore.getUpcomingContests();
+  if (contests.length === 0) {
+    await sendTelegramMessage(chatId, `ℹ️ No upcoming contests found on Codeforces.`);
+    return;
+  }
+  const nextContest = contests[0];
+  const date = new Date(nextContest.startTime).toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const hoursLeft = Math.max(0, Math.floor(nextContest.relativeTimeSeconds / -3600));
+  const minutesLeft = Math.max(0, Math.floor((nextContest.relativeTimeSeconds / -60) % 60));
+
+  const msg =
+    `⚡ *Next Codeforces Contest Alert*\n\n` +
+    `🏆 *${nextContest.name}*\n` +
+    `⏰ *Start Time:* ${date}\n` +
+    `⏳ *Countdown:* In *${hoursLeft}h ${minutesLeft}m*!\n` +
+    `⏱ *Duration:* ${Math.round(nextContest.durationSeconds / 3600)} hours\n\n` +
+    `🔗 [Register on Codeforces](https://codeforces.com/contestRegistration/${nextContest.codeforcesContestId})`;
+
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '📅 All Contests', callback_data: 'cb_contests' },
+          { text: '🏆 Leaderboard', callback_data: 'cb_leaderboard' },
+        ],
+        [
+          { text: '🔗 Register on Codeforces ↗️', url: `https://codeforces.com/contestRegistration/${nextContest.codeforcesContestId}` },
+        ],
+      ],
+    },
+  });
+}
+
+async function sendContestsMsg(chatId: number | string) {
+  const contests = await serverStore.getUpcomingContests();
+  if (contests.length === 0) {
+    await sendTelegramMessage(chatId, `ℹ️ No upcoming Codeforces rounds detected at the moment.`);
+    return;
+  }
+  let msg = `📅 *Upcoming Codeforces Contests Schedule*\n\n`;
+  contests.slice(0, 5).forEach((c, idx) => {
+    const date = new Date(c.startTime).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    });
+    const hoursLeft = Math.max(0, Math.floor(c.relativeTimeSeconds / -3600));
+    msg += `${idx + 1}. *${c.name}*\n   ⏰ Start: ${date} (in ~${hoursLeft}h)\n   ⏱ Duration: ${Math.round(c.durationSeconds / 3600)}h\n\n`;
+  });
+  msg += `🌐 [Register & View Schedule](${WEB_URL}/contests)`;
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '⚡ Nearest Contest', callback_data: 'cb_next' }],
+        [{ text: '🌐 View On Dashboard ↗️', url: `${WEB_URL}/contests` }],
+      ],
+    },
+  });
+}
+
+async function sendStudentsMsg(chatId: number | string) {
+  const students = serverStore.getStudents();
+  if (students.length === 0) {
+    await sendTelegramMessage(chatId, `ℹ️ No students registered in the classroom yet.\n\nSend \`/join <cf_handle>\` to enroll!`);
+    return;
+  }
+  let msg = `👥 *Enrolled Classroom Students (${students.length})*\n\n`;
+  students.forEach((s, idx) => {
+    const rating = s.stats?.rating || 'Unrated';
+    const rank = s.stats?.rank || 'unrated';
+    const solved = s.stats?.solvedCount || 0;
+    msg += `${idx + 1}. *${s.name}* (@${s.codeforcesHandle})\n   ⭐ Rating: ${rating} (${rank}) | Solved: ${solved}\n\n`;
+  });
+  msg += `🌐 [View Roster on Dashboard](${WEB_URL}/students)`;
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '🏆 Leaderboard', callback_data: 'cb_leaderboard' },
+          { text: '➕ How to Join', callback_data: 'cb_join' },
+        ],
+        [{ text: '🌐 View Student Profiles ↗️', url: `${WEB_URL}/students` }],
+      ],
+    },
+  });
+}
+
+async function sendCoachProfileMsg(chatId: number | string) {
+  const data = await serverStore.getTeacherDashboard();
+  const t = data.teacher;
+  const msg =
+    `👨‍🏫 *Teacher & Coach Profile: ${t.name}* (@${t.handle})\n` +
+    `_${t.title || 'Lead Algorithms & CP Coach'}_\n\n` +
+    `⭐ *Codeforces Rating:* ${t.rating} (${t.rank})\n` +
+    `🏆 *Max Rating:* ${t.maxRating} (${t.maxRank})\n` +
+    `🎯 *Problems Solved:* ${t.totalSolved}\n` +
+    `📊 *Contests Attended:* ${t.totalContests}\n\n` +
+    (t.acmp?.id ? `🏅 *ACMP.ru Rating:* ${t.acmp.rating} (Solved: ${t.acmp.solvedCount})\n\n` : '') +
+    `🌐 [View Web Dashboard](${WEB_URL})`;
+
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '👥 Classroom Roster', callback_data: 'cb_students' },
+          { text: '🏆 Leaderboard', callback_data: 'cb_leaderboard' },
+        ],
+        [{ text: '🌐 Open Coach Profile ↗️', url: `${WEB_URL}` }],
+      ],
+    },
+  });
+}
+
+async function sendClassOverviewMsg(chatId: number | string) {
+  const summary = serverStore.getAnalytics();
+  const msg =
+    `🏫 *Classroom Analytics Overview*\n\n` +
+    `👥 *Total Students:* ${summary.totalStudents} (${summary.activeStudents} active)\n` +
+    `📈 *Average Rating:* ${summary.averageRating}\n` +
+    `🎯 *Median Rating:* ${summary.medianRating}\n` +
+    `🌟 *Highest Rating:* ${summary.highestRating}\n` +
+    `📉 *Lowest Rating:* ${summary.lowestRating}\n` +
+    `✅ *Total Solved Problems:* ${summary.totalSolvedProblems}\n` +
+    `📊 *Avg Solved Per Student:* ${summary.averageSolvedProblems}\n` +
+    `🏆 *Total Contests Attended:* ${summary.totalContestsParticipated}\n\n` +
+    `🌐 [View Live Analytics](${WEB_URL}/analytics)`;
+
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '🏆 Leaderboard', callback_data: 'cb_leaderboard' },
+          { text: '👥 Students', callback_data: 'cb_students' },
+        ],
+        [{ text: '🌐 Open Live Analytics ↗️', url: `${WEB_URL}/analytics` }],
+      ],
+    },
+  });
+}
+
+async function sendPotdMsg(chatId: number | string) {
+  const POTD_LIST = [
+    { contestId: 706, index: 'B', name: 'Interesting drink', rating: 1100, tags: ['binary search', 'dp', 'sortings'] },
+    { contestId: 467, index: 'A', name: 'George and Accommodation', rating: 800, tags: ['implementation'] },
+    { contestId: 158, index: 'B', name: 'Taxi', rating: 1100, tags: ['greedy', 'special problem'] },
+    { contestId: 580, index: 'A', name: 'Kefa and First Steps', rating: 900, tags: ['dp', 'implementation'] },
+    { contestId: 455, index: 'A', name: 'Boredom', rating: 1500, tags: ['dp'] },
+    { contestId: 1352, index: 'C', name: 'K-th Not Divisible by n', rating: 1200, tags: ['binary search', 'math'] },
+    { contestId: 189, index: 'A', name: 'Cut Ribbon', rating: 1300, tags: ['dp'] },
+  ];
+
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  const p = POTD_LIST[dayOfYear % POTD_LIST.length];
+  const url = `https://codeforces.com/contest/${p.contestId}/problem/${p.index}`;
+
+  const msg =
+    `💡 *Daily Algorithmic Problem of the Day (POTD)*\n\n` +
+    `🎯 *${p.index}. ${p.name}* (Contest #${p.contestId})\n` +
+    `★ *Difficulty Rating:* \`${p.rating}\`\n` +
+    `🏷️ *Topic Tags:* ${p.tags.map((t) => `\`${t}\``).join(', ')}\n\n` +
+    `Solve this problem today to maintain your coding streak! 🚀`;
+
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🚀 Solve on Codeforces ↗️', url }],
+        [
+          { text: '🏆 Leaderboard', callback_data: 'cb_leaderboard' },
+          { text: '⚡ Next Contest', callback_data: 'cb_next' },
+        ],
+      ],
+    },
+  });
+}
+
+async function sendJoinGuideMsg(chatId: number | string) {
+  const msg =
+    `➕ *How to Enroll in Codeforces Classroom Hub*\n\n` +
+    `You can enroll in 2 simple ways:\n\n` +
+    `*Option 1: In this Chat*\n` +
+    `Send: \`/join <cf_handle> [Full Name]\`\n` +
+    `_Example:_ \`/join tourist Gennady Korotkevich\`\n\n` +
+    `*Option 2: 1-Click Web Invite*\n` +
+    `Open: \`${WEB_URL}/join\`\n\n` +
+    `Once enrolled, your Codeforces submissions, rating milestones, and contest performance will automatically appear in Coach Abubakr's classroom analytics! 🌟`;
+
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🌐 Open Web Join Portal ↗️', url: `${WEB_URL}/join` }],
+        [{ text: '🏆 View Leaderboard', callback_data: 'cb_leaderboard' }],
+      ],
+    },
+  });
 }
 
 
@@ -192,8 +436,55 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const update = await req.json();
-    const message = update?.message;
 
+    // Sync state from Supabase cloud database
+    await serverStore.syncFromSupabase();
+
+    // 1. Handle Interactive Inline Keyboard Callbacks
+    if (update.callback_query) {
+      const cb = update.callback_query;
+      const callbackId = cb.id;
+      const chatId = cb.message?.chat?.id || cb.from?.id;
+      const data = cb.data;
+
+      await answerCallbackQuery(callbackId);
+
+      if (data === 'cb_leaderboard') {
+        await sendLeaderboardMsg(chatId);
+      } else if (data === 'cb_next') {
+        await sendNextContestMsg(chatId);
+      } else if (data === 'cb_contests') {
+        await sendContestsMsg(chatId);
+      } else if (data === 'cb_students') {
+        await sendStudentsMsg(chatId);
+      } else if (data === 'cb_my') {
+        await sendCoachProfileMsg(chatId);
+      } else if (data === 'cb_class') {
+        await sendClassOverviewMsg(chatId);
+      } else if (data === 'cb_potd') {
+        await sendPotdMsg(chatId);
+      } else if (data === 'cb_join') {
+        await sendJoinGuideMsg(chatId);
+      } else if (data === 'cb_ai') {
+        await sendTelegramMessage(
+          chatId,
+          '💬 *Ask the AI Teaching Assistant*\n\nSend your message starting with `/ai <question>` or simply write your coding, algorithm, or contest preparation question directly in this chat!'
+        );
+      } else if (data === 'cb_alert_test') {
+        const result = await serverStore.checkContestAlerts();
+        const count = result.alerted?.length || 0;
+        await sendTelegramMessage(
+          chatId,
+          count > 0
+            ? `🔔 *Contest Alert Check:* Triggered reminder for ${count} upcoming round(s)!`
+            : `🔔 *Contest Alert Check:* No Codeforces rounds starting in under 30 minutes.`
+        );
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
+    const message = update?.message;
     if (!message || !message.text) {
       return NextResponse.json({ ok: true });
     }
@@ -203,8 +494,30 @@ export async function POST(req: Request) {
     const command = text.split(' ')[0].toLowerCase().replace('@codeforcesstudents_bot', '');
     const args = text.split(' ').slice(1);
 
-    // Sync state from Supabase cloud database
-    await serverStore.syncFromSupabase();
+    const fromId = String(message.from?.id || '');
+    const fromUsername = (message.from?.username || '').toLowerCase();
+    const firstName = message.from?.first_name || 'Coder';
+
+    const settings = serverStore.getSettings();
+    const adminIds = (settings.telegramAdminIds || process.env.TELEGRAM_ADMIN_IDS || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const teacherHandle = (settings.teacherHandle || 'AbubakrJ').toLowerCase();
+
+    const isTeacher =
+      adminIds.includes(fromId) ||
+      fromUsername === teacherHandle ||
+      fromUsername === 'abubakrj' ||
+      (message.chat?.type === 'private' &&
+        (fromUsername.includes('abubakr') || (message.from?.first_name || '').toLowerCase().includes('abubakr')));
+
+    const students = serverStore.getStudents();
+    const enrolledStudent = students.find(
+      (s) =>
+        (fromUsername && s.codeforcesHandle.toLowerCase() === fromUsername) ||
+        (s.name && s.name.toLowerCase().includes(firstName.toLowerCase()))
+    );
 
     if (command === '/ai' || command === '/ask') {
       const prompt = args.join(' ').trim();
@@ -220,25 +533,170 @@ export async function POST(req: Request) {
     }
 
     if (command === '/start') {
-      await sendTelegramMessage(
-        chatId,
-        `👋 *Welcome to Codeforces Classroom Hub Bot!*\n` +
-          `_Managed by Abubakr Juraev (@AbubakrJ)_\n\n` +
-          `Students can join the classroom instantly:\n` +
-          `• \`/add <cf_handle> [Name]\` - Add student to classroom\n• \`/join <cf_handle> [Name]\` - Self-enroll in classroom\n` +
-          `• \`/link\` - Get the 1-click web join link\n\n` +
-          `Classroom & Stats Commands:\n` +
-          `• \`/my\` - View teacher profile & stats\n` +
-          `• \`/class\` - View classroom statistics\n` +
-          `• \`/students\` - View enrolled students\n` +
-          `• \`/leaderboard\` - View current classroom rankings\n` +
-          `• \`/contests\` - View upcoming Codeforces rounds\n` +
-          `• \`/next\` - Next contest countdown\n` +
-          `• \`/rating <handle>\` - Check user Codeforces rating\n` +
-          `• \`/problems <handle>\` - View solved problems breakdown\n` +
-          `• \`/help\` - Show this help menu\n\n` +
-          `🌐 [Open Classroom Dashboard](${WEB_URL})`
-      );
+      if (isTeacher) {
+        const analytics = serverStore.getAnalytics();
+        let nextRoundText = 'Checking schedule...';
+        try {
+          const upcoming = await serverStore.getUpcomingContests();
+          if (upcoming.length > 0) {
+            const n = upcoming[0];
+            const hoursLeft = Math.max(0, Math.floor(n.relativeTimeSeconds / -3600));
+            nextRoundText = `${n.name} (in ~${hoursLeft}h)`;
+          }
+        } catch {}
+
+        const teacherGreeting =
+`👋 *Assalomu alaykum, Coach ${settings.teacherName || 'Abubakr'}!* 👨‍🏫
+*Welcome to your Classroom Command Cockpit*
+
+👥 *Classroom:* Algorithms & Competitive Programming 2026
+📊 *Roster:* *${students.length} students enrolled* (${analytics.activeStudents} active)
+📈 *Class Avg Rating:* *${analytics.averageRating}* (Floor: ${analytics.lowestRating}, Peak: ${analytics.highestRating})
+⏳ *Next Contest:* *${nextRoundText}*
+
+⚡ *Cloud Telemetry & Bot:* Active 24/7 on Vercel
+
+_Select an action below or tap Web App to open the dashboard:_`;
+
+        const teacherKeyboard = {
+          inline_keyboard: [
+            [
+              { text: '🏆 Live Leaderboard', callback_data: 'cb_leaderboard' },
+              { text: '⚡ Next Contest', callback_data: 'cb_next' },
+            ],
+            [
+              { text: '👥 Students Roster', callback_data: 'cb_students' },
+              { text: '👨‍🏫 My Coach Profile', callback_data: 'cb_my' },
+            ],
+            [
+              { text: '📅 All Contests', callback_data: 'cb_contests' },
+              { text: '💡 Problem of the Day', callback_data: 'cb_potd' },
+            ],
+            [
+              { text: '🔔 Test Contest Alert', callback_data: 'cb_alert_test' },
+              { text: '🤖 Ask AI Assistant', callback_data: 'cb_ai' },
+            ],
+            [
+              { text: '🌐 Open Web Dashboard ↗️', url: `${WEB_URL}` },
+            ],
+          ],
+        };
+
+        await sendTelegramMessage(chatId, teacherGreeting, { reply_markup: teacherKeyboard });
+        return NextResponse.json({ ok: true });
+      }
+
+      if (enrolledStudent) {
+        const sStats = enrolledStudent.stats;
+        const rating = sStats?.rating || 'Unrated';
+        const rank = sStats?.rank || 'unrated';
+        const solved = sStats?.solvedCount || 0;
+
+        const studentGreeting =
+`👋 *Welcome back, ${enrolledStudent.name}!* 🎯
+*Codeforces Classroom Hub*
+_Coach: Abubakr Juraev (@${settings.teacherHandle})_
+
+⭐ *Your Current Rating:* *${rating}* (${rank})
+✅ *Problems Solved:* *${solved}*
+🏫 *Batch:* Algorithms & Competitive Programming 2026
+
+Tap below to check the leaderboard, practice today's challenge, or view upcoming contests:`;
+
+        const studentKeyboard = {
+          inline_keyboard: [
+            [
+              { text: '🏆 Classroom Leaderboard', callback_data: 'cb_leaderboard' },
+              { text: '⚡ Next Contest', callback_data: 'cb_next' },
+            ],
+            [
+              { text: '💡 Problem of the Day', callback_data: 'cb_potd' },
+              { text: '📅 Contests Schedule', callback_data: 'cb_contests' },
+            ],
+            [
+              { text: '🤖 Ask AI Coach', callback_data: 'cb_ai' },
+              { text: '👤 My Profile & Stats', url: `${WEB_URL}/students/${enrolledStudent.id}` },
+            ],
+            [
+              { text: '🌐 Open Classroom Hub ↗️', url: `${WEB_URL}` },
+            ],
+          ],
+        };
+
+        await sendTelegramMessage(chatId, studentGreeting, { reply_markup: studentKeyboard });
+        return NextResponse.json({ ok: true });
+      }
+
+      const guestGreeting =
+`👋 *Welcome, ${firstName}!* 🚀
+*Codeforces Classroom Hub*
+_Mentored by Coach Abubakr Juraev (@${settings.teacherHandle})_
+
+🎯 *Class:* Algorithms & Competitive Programming 2026
+💡 Train algorithms, track your rating trajectory, and get instant contest reminders.
+
+*How to enroll in 10 seconds:*
+Send: \`/join <your_codeforces_handle> [Your Name]\`
+_Example:_ \`/join tourist Gennady Korotkevich\`
+
+Choose an option below to explore:`;
+
+      const guestKeyboard = {
+        inline_keyboard: [
+          [
+            { text: '🏆 View Leaderboard', callback_data: 'cb_leaderboard' },
+            { text: '⚡ Next Contest', callback_data: 'cb_next' },
+          ],
+          [
+            { text: '➕ How to Join Classroom', callback_data: 'cb_join' },
+            { text: '💡 Problem of the Day', callback_data: 'cb_potd' },
+          ],
+          [
+            { text: '📅 Contests Schedule', callback_data: 'cb_contests' },
+            { text: '🤖 Ask AI Assistant', callback_data: 'cb_ai' },
+          ],
+          [
+            { text: '🌐 Open Web Classroom ↗️', url: `${WEB_URL}` },
+          ],
+        ],
+      };
+
+      await sendTelegramMessage(chatId, guestGreeting, { reply_markup: guestKeyboard });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (command === '/leaderboard') {
+      await sendLeaderboardMsg(chatId);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (command === '/next') {
+      await sendNextContestMsg(chatId);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (command === '/contests') {
+      await sendContestsMsg(chatId);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (command === '/students') {
+      await sendStudentsMsg(chatId);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (command === '/my') {
+      await sendCoachProfileMsg(chatId);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (command === '/class') {
+      await sendClassOverviewMsg(chatId);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (command === '/potd') {
+      await sendPotdMsg(chatId);
       return NextResponse.json({ ok: true });
     }
 
@@ -246,31 +704,25 @@ export async function POST(req: Request) {
       await sendTelegramMessage(
         chatId,
         `📚 *Codeforces Classroom Hub Guide*\n\n` +
-          `• \`/add <handle> [name]\` : Add a student to the classroom\n• \`/join <handle> [name]\` : Self-enroll in the classroom\n` +
-          `• \`/link\` : Shareable student join invite URL\n` +
-          `• \`/my\` : Teacher Abubakr Juraev profile & live stats\n` +
-          `• \`/class\` : Class overview (avg rating, total solved, students)\n` +
-          `• \`/students\` : Roster of enrolled students and their ratings\n` +
-          `• \`/leaderboard\` : Top ranked students in the classroom\n` +
-          `• \`/contests\` : Upcoming official Codeforces rounds\n` +
-          `• \`/next\` : Countdown to the nearest upcoming round\n` +
-          `• \`/rating <handle>\` : Real-time rating check for any CF handle\n` +
-          `• \`/problems <handle>\` : Solved count and activity breakdown\n• \`/ai <question>\` : Ask the AI assistant anything (algorithms, students, CP)\n\n` +
+          `• \`/start\` : Interactive button menu & greeting\n` +
+          `• \`/leaderboard\` : Classroom standings\n` +
+          `• \`/next\` : Nearest upcoming contest countdown\n` +
+          `• \`/contests\` : Upcoming Codeforces rounds\n` +
+          `• \`/potd\` : Daily algorithmic Problem of the Day\n` +
+          `• \`/students\` : Enrolled student roster\n` +
+          `• \`/my\` : Coach profile & statistics\n` +
+          `• \`/class\` : Classroom analytics overview\n` +
+          `• \`/rating <handle>\` : Codeforces rating check\n` +
+          `• \`/problems <handle>\` : Problem solve breakdown\n` +
+          `• \`/join <handle> [name]\` : Enroll in classroom\n` +
+          `• \`/ai <question>\` : Ask AI teaching assistant\n\n` +
           `🌐 Dashboard: ${WEB_URL}`
       );
       return NextResponse.json({ ok: true });
     }
 
     if (command === '/link') {
-      await sendTelegramMessage(
-        chatId,
-        `🔗 *Student Classroom Join Link*\n\n` +
-          `Share this link with your students to automatically join the classroom:\n` +
-          `👉 \`${WEB_URL}/join\`\n\n` +
-          `Or students can message this bot (@CodeForcesStudents_Bot):\n` +
-          `\`/join <handle> [Full Name]\`\n\n` +
-          `_No passwords or login required!_`
-      );
+      await sendJoinGuideMsg(chatId);
       return NextResponse.json({ ok: true });
     }
 
@@ -287,138 +739,6 @@ export async function POST(req: Request) {
       } else {
         await sendTelegramMessage(chatId, `❌ Student with handle \`@${targetHandle}\` was not found in the classroom.`);
       }
-      return NextResponse.json({ ok: true });
-    }
-
-    if (command === '/my') {
-      const data = await serverStore.getTeacherDashboard();
-      const t = data.teacher;
-
-      await sendTelegramMessage(
-        chatId,
-        `👨‍🏫 *Teacher Profile: ${t.name}* (@${t.handle})\n\n` +
-          `⭐ *Rating:* ${t.rating} (${t.rank})\n` +
-          `🏆 *Max Rating:* ${t.maxRating} (${t.maxRank})\n` +
-          `🎯 *Problems Solved:* ${t.totalSolved}\n` +
-          `📊 *Total Contests:* ${t.totalContests}\n\n` +
-          `🌐 [View Web Dashboard](${WEB_URL})`
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    if (command === '/class') {
-      const summary = serverStore.getAnalytics();
-
-      await sendTelegramMessage(
-        chatId,
-        `🏫 *Classroom Analytics Overview*\n\n` +
-          `👥 *Total Students:* ${summary.totalStudents} (${summary.activeStudents} active)\n` +
-          `📈 *Average Rating:* ${summary.averageRating}\n` +
-          `🎯 *Median Rating:* ${summary.medianRating}\n` +
-          `🌟 *Highest Rating:* ${summary.highestRating}\n` +
-          `📉 *Lowest Rating:* ${summary.lowestRating}\n` +
-          `✅ *Total Solved Problems:* ${summary.totalSolvedProblems}\n` +
-          `📊 *Avg Solved Per Student:* ${summary.averageSolvedProblems}\n` +
-          `🏆 *Total Contests Attended:* ${summary.totalContestsParticipated}\n\n` +
-          `🌐 [View Live Analytics](${WEB_URL}/analytics)`
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    if (command === '/students') {
-      const students = serverStore.getStudents();
-
-      if (students.length === 0) {
-        await sendTelegramMessage(chatId, `ℹ️ No students registered in the classroom yet.\n\nSend \`/join <cf_handle>\` to enroll!`);
-        return NextResponse.json({ ok: true });
-      }
-
-      let msg = `👥 *Enrolled Classroom Students (${students.length})*\n\n`;
-      students.forEach((s, idx) => {
-        const rating = s.stats?.rating || 'Unrated';
-        const rank = s.stats?.rank || 'unrated';
-        const solved = s.stats?.solvedCount || 0;
-        msg += `${idx + 1}. *${s.name}* (@${s.codeforcesHandle})\n   ⭐ Rating: ${rating} (${rank}) | Solved: ${solved}\n\n`;
-      });
-
-      msg += `🌐 [View Roster on Dashboard](${WEB_URL}/students)`;
-      await sendTelegramMessage(chatId, msg);
-      return NextResponse.json({ ok: true });
-    }
-
-    if (command === '/leaderboard') {
-      const leaderboard = serverStore.getLeaderboard();
-
-      if (leaderboard.length === 0) {
-        await sendTelegramMessage(chatId, `ℹ️ Leaderboard is currently empty.`);
-        return NextResponse.json({ ok: true });
-      }
-
-      let msg = `🏆 *Classroom Standings & Leaderboard*\n\n`;
-      leaderboard.slice(0, 10).forEach((entry) => {
-        const medal = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`;
-        msg += `${medal} *${entry.name}* (@${entry.handle})\n   ⭐ Rating: *${entry.rating}* (${entry.rankTitle}) | Solved: ${entry.solvedCount}\n\n`;
-      });
-
-      msg += `🌐 [View Full Leaderboard](${WEB_URL}/leaderboard)`;
-      await sendTelegramMessage(chatId, msg);
-      return NextResponse.json({ ok: true });
-    }
-
-    if (command === '/contests') {
-      const contests = await serverStore.getUpcomingContests();
-
-      if (contests.length === 0) {
-        await sendTelegramMessage(chatId, `ℹ️ No upcoming Codeforces rounds detected at the moment.`);
-        return NextResponse.json({ ok: true });
-      }
-
-      let msg = `📅 *Upcoming Codeforces Contests*\n\n`;
-      contests.slice(0, 5).forEach((c, idx) => {
-        const date = new Date(c.startTime).toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZoneName: 'short',
-        });
-        const hoursLeft = Math.max(0, Math.floor(c.relativeTimeSeconds / -3600));
-        msg += `${idx + 1}. *${c.name}*\n   ⏰ Start: ${date} (in ~${hoursLeft}h)\n   ⏱ Duration: ${Math.round(c.durationSeconds / 3600)}h\n\n`;
-      });
-
-      msg += `🌐 [Register & View Schedule](${WEB_URL}/contests)`;
-      await sendTelegramMessage(chatId, msg);
-      return NextResponse.json({ ok: true });
-    }
-
-    if (command === '/next') {
-      const contests = await serverStore.getUpcomingContests();
-
-      if (contests.length === 0) {
-        await sendTelegramMessage(chatId, `ℹ️ No upcoming contests found on Codeforces.`);
-        return NextResponse.json({ ok: true });
-      }
-
-      const nextContest = contests[0];
-      const date = new Date(nextContest.startTime).toLocaleString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      const hoursLeft = Math.max(0, Math.floor(nextContest.relativeTimeSeconds / -3600));
-      const minutesLeft = Math.max(0, Math.floor((nextContest.relativeTimeSeconds / -60) % 60));
-
-      const msg =
-        `⚡ *Next Codeforces Contest Alert*\n\n` +
-        `🏆 *${nextContest.name}*\n` +
-        `⏰ *Start Time:* ${date}\n` +
-        `⏳ *Countdown:* Starting in *${hoursLeft} hours and ${minutesLeft} minutes*!\n` +
-        `⏱ *Duration:* ${Math.round(nextContest.durationSeconds / 3600)} hours\n\n` +
-        `🔗 [Open Contest Page](https://codeforces.com/contestRegistration/${nextContest.codeforcesContestId})`;
-
-      await sendTelegramMessage(chatId, msg);
       return NextResponse.json({ ok: true });
     }
 
