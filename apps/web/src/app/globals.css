@@ -193,3 +193,50 @@ h1, h2, h3, .heading-display {
     transform: none !important;
   }
 }
+
+/* Print & PDF Document Generation Optimization */
+@media print {
+  @page {
+    margin: 1.5cm;
+    size: auto;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  header, nav, aside, footer, button, .no-print {
+    display: none !important;
+  }
+
+  .glass-panel,
+  .glass-panel-elevated,
+  .glass-card,
+  .glass-card-interactive {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .text-white, .text-zinc-200, .text-zinc-300, .text-zinc-400 {
+    color: #1f2937 !important;
+  }
+
+  .text-zinc-500 {
+    color: #6b7280 !important;
+  }
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th, td {
+    border-bottom: 1px solid #e5e7eb !important;
+    color: #111827 !important;
+  }
+}
