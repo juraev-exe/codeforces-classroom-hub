@@ -1076,6 +1076,35 @@ Choose an option below to get started:`;
       return NextResponse.json({ ok: true });
     }
 
+    if (['/homework', '/assignments', '/assignment', '/ps'].includes(command)) {
+      const assignments = serverStore.getAssignments();
+      if (assignments.length === 0) {
+        await sendTelegramMessage(chatId, `ℹ️ No active problem sets assigned yet.\n\n🌐 View Hub: ${WEB_URL}/assignments`);
+        return NextResponse.json({ ok: true });
+      }
+
+      let msg = `📚 *Classroom Problem Sets & Homework*\n\n`;
+      assignments.slice(0, 3).forEach((a, idx) => {
+        const daysLeft = Math.ceil((new Date(a.dueDate).getTime() - Date.now()) / (1000 * 3600 * 24));
+        const dueText = daysLeft < 0 ? '⚠️ Past Due' : `⏰ ${daysLeft}d left`;
+        const probList = a.problems.map((p) => `• [${p.id} - ${p.name}](${p.url})`).join('\n');
+        msg += `*${idx + 1}. ${a.title}* (${dueText})\n📊 Progress: *${a.completionRate}%*\n${probList}\n\n`;
+      });
+      msg += `🌐 [Open Full Problem Sets Manager](${WEB_URL}/assignments)`;
+
+      await sendTelegramMessage(chatId, msg, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '📚 View All Problem Sets', url: `${WEB_URL}/assignments` },
+              { text: '🏆 Standings', url: `${WEB_URL}/leaderboard` },
+            ],
+          ],
+        },
+      });
+      return NextResponse.json({ ok: true });
+    }
+
     if (command === '/help') {
       await sendTelegramMessage(
         chatId,
@@ -1083,6 +1112,7 @@ Choose an option below to get started:`;
           `• \`/start\` : Interactive menu & platform link\n` +
           `• \`/register\` : Step-by-step registration wizard (Name, Nick/Link, Age)\n` +
           `• \`/join <handle|link> [name] [age]\` : 1-line enrollment with details\n` +
+          `• \`/homework\` : Active problem sets & assignments\n` +
           `• \`/cancel\` : Abort active registration\n` +
           `• \`/link\` : Shareable invite links\n` +
           `• \`/leaderboard\` : Classroom standings\n` +

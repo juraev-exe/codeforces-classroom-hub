@@ -62,10 +62,12 @@ export default function StudentsPage() {
 
   function exportStudentsCsv() {
     if (students.length === 0) return;
-    const headers = ['Name', 'Codeforces Handle', 'Rating', 'Rank', 'Max Rating', 'Solved Problems', 'Contest Count', 'Active'];
+    const headers = ['Name', 'Codeforces Handle', 'Age', 'Telegram', 'Rating', 'Rank', 'Max Rating', 'Solved Problems', 'Contest Count', 'Active'];
     const rows = students.map((s) => [
       s.name,
       s.codeforcesHandle,
+      s.age || '',
+      s.telegramUsername ? `@${s.telegramUsername}` : '',
       s.stats?.rating || 0,
       s.stats?.rank || 'unrated',
       s.stats?.maxRating || 0,

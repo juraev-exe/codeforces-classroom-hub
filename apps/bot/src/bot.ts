@@ -125,6 +125,7 @@ bot.help((ctx) => {
     `📚 *Codeforces Classroom Hub Guide*\n\n` +
       `• \`/join <handle|link> [name] [age]\` : Enroll in classroom with details\n` +
       `• \`/add <handle|link> [name] [age]\` : Teacher shortcut to enroll student\n` +
+      `• \`/homework\` : Active problem sets & assignments\n` +
       `• \`/link\` : Shareable student web invite URL\n` +
       `• \`/leaderboard\` : Current classroom standings\n` +
       `• \`/next\` : Countdown to nearest contest\n` +
@@ -275,6 +276,39 @@ async function handleEnrollmentCommand(ctx: any) {
 bot.command('join', handleEnrollmentCommand);
 bot.command('add', handleEnrollmentCommand);
 bot.command('register', handleEnrollmentCommand);
+
+bot.command(['homework', 'assignments', 'assignment', 'ps'], async (ctx) => {
+  try {
+    const assignments = await apiGet<any[]>('/api/assignments');
+    if (!assignments || assignments.length === 0) {
+      await ctx.reply(`ℹ️ No active problem sets assigned yet.\n\n🌐 View Hub: ${webUrl}/assignments`);
+      return;
+    }
+
+    let msg = `📚 *Classroom Problem Sets & Homework*\n\n`;
+    assignments.slice(0, 3).forEach((a, idx) => {
+      const daysLeft = Math.ceil((new Date(a.dueDate).getTime() - Date.now()) / (1000 * 3600 * 24));
+      const dueText = daysLeft < 0 ? '⚠️ Past Due' : `⏰ ${daysLeft}d left`;
+      const probList = a.problems.map((p: any) => `• [${p.id} - ${p.name}](${p.url})`).join('\n');
+      msg += `*${idx + 1}. ${a.title}* (${dueText})\n📊 Progress: *${a.completionRate}%*\n${probList}\n\n`;
+    });
+    msg += `🌐 [Open Problem Sets Manager](${webUrl}/assignments)`;
+
+    await ctx.reply(msg, {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '📚 View Problem Sets', url: `${webUrl}/assignments` },
+            { text: '🏆 Leaderboard', url: `${webUrl}/leaderboard` },
+          ],
+        ],
+      },
+    });
+  } catch (err: any) {
+    await ctx.reply(`❌ Error fetching assignments: ${err.message}`);
+  }
+});
 
 bot.command('my', async (ctx) => {
   try {

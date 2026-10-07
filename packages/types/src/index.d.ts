@@ -104,6 +104,8 @@ export interface Student {
     classId: string;
     group?: string | null;
     age?: number | null;
+    telegramUsername?: string | null;
+    telegramChatId?: string | number | null;
     active: boolean;
     createdAt: string;
     updatedAt: string;
@@ -335,4 +337,37 @@ export interface SyncResult {
     syncedContestsCount: number;
     errors: string[];
     timestamp: string;
+}
+export interface AssignmentProblem {
+    id: string;
+    contestId: number;
+    index: string;
+    name: string;
+    rating?: number;
+    url: string;
+}
+export interface Assignment {
+    id: string;
+    title: string;
+    description?: string;
+    classId: string;
+    className?: string;
+    problems: AssignmentProblem[];
+    dueDate: string;
+    createdAt: string;
+    updatedAt: string;
+}
+export interface StudentAssignmentProgress {
+    studentId: string;
+    studentName: string;
+    handle: string;
+    avatar?: string;
+    solvedCount: number;
+    totalCount: number;
+    completed: boolean;
+    solvedProblemIds: string[];
+}
+export interface AssignmentWithProgress extends Assignment {
+    studentProgress: StudentAssignmentProgress[];
+    completionRate: number;
 }

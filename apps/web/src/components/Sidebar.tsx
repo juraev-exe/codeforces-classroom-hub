@@ -18,6 +18,8 @@ import {
   Radio,
   Zap,
   Settings,
+  BookOpen,
+  Sparkles,
 } from 'lucide-react';
 
 interface NavItem {
@@ -46,6 +48,7 @@ const navGroups: NavGroup[] = [
   {
     title: 'TRAINING & COMPETITION',
     items: [
+      { href: '/assignments', label: 'Problem Sets', icon: BookOpen, badge: 'New', badgeColor: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
       { href: '/contests', label: 'Contests', icon: Calendar, badge: '4' },
       { href: '/analytics', label: 'AI Analytics', icon: BarChart3 },
     ],
@@ -54,6 +57,7 @@ const navGroups: NavGroup[] = [
     title: 'SYSTEM & TOOLS',
     items: [
       { href: '/join', label: 'Student Join', icon: Link2 },
+      { href: '/showcase', label: 'Product Tour', icon: Sparkles, badge: 'SaaS', badgeColor: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
       { href: '/telegram', label: 'Telegram Bot', icon: Bot, badge: 'Live', badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
       { href: '/settings', label: 'Settings', icon: Settings },
     ],
