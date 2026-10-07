@@ -23,6 +23,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getAuthHeaders } from '@/lib/api';
 
 interface AppSettings {
   teacherName: string;
@@ -42,7 +43,6 @@ interface AppSettings {
 
 interface StorageHealth {
   storageFile: string;
-  storagePath: string;
   fileSizeBytes: number;
   fileSizeFormatted: string;
   totalStudents: number;
@@ -105,7 +105,7 @@ export default function SettingsPage() {
 
   async function fetchWebhookInfo() {
     try {
-      const res = await fetch('/api/telegram/webhook?action=info');
+      const res = await fetch('/api/telegram/webhook?action=info', { headers: getAuthHeaders() });
       const data = await res.json();
       if (data.ok && data.result) {
         setWebhookInfo(data.result);
@@ -116,7 +116,7 @@ export default function SettingsPage() {
   async function handleSyncWebhook() {
     try {
       setSyncingWebhook(true);
-      const res = await fetch('/api/telegram/webhook?action=set');
+      const res = await fetch('/api/telegram/webhook?action=set', { headers: getAuthHeaders() });
       const data = await res.json();
       if (data.success) {
         triggerStatus('success', '24/7 Cloud Webhook linked with Telegram! Works even with PC off. ✅');
@@ -134,7 +134,7 @@ export default function SettingsPage() {
   async function handleUnsetWebhook() {
     try {
       setSyncingWebhook(true);
-      const res = await fetch('/api/telegram/webhook?action=delete');
+      const res = await fetch('/api/telegram/webhook?action=delete', { headers: getAuthHeaders() });
       const data = await res.json();
       if (data.success) {
         triggerStatus('info', 'Webhook removed. Telegram bot switched to local polling mode.');
@@ -152,7 +152,7 @@ export default function SettingsPage() {
   async function fetchSettings() {
     try {
       setLoading(true);
-      const res = await fetch('/api/settings');
+      const res = await fetch('/api/settings', { headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
         if (data.settings) setSettings(data.settings);
@@ -171,7 +171,7 @@ export default function SettingsPage() {
       setSaving(true);
       const res = await fetch('/api/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(settings),
       });
 
@@ -196,7 +196,7 @@ export default function SettingsPage() {
       setTestingTelegram(true);
       const res = await fetch('/api/telegram/notify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ type: 'test' }),
       });
 
@@ -218,7 +218,7 @@ export default function SettingsPage() {
       setCheckingContests(true);
       const res = await fetch('/api/telegram/notify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ type: 'contest_check' }),
       });
       const data = await res.json();
@@ -244,7 +244,7 @@ export default function SettingsPage() {
     }
     try {
       setClearingCache(true);
-      const res = await fetch('/api/settings', { method: 'DELETE' });
+      const res = await fetch('/api/settings', { method: 'DELETE', headers: getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
         if (data.health) setHealth(data.health);

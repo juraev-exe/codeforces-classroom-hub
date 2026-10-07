@@ -31,13 +31,7 @@ export async function fetchApi<T>(path: string, options?: RequestInit): Promise<
 
   const url = `${base}${normalizedPath}`;
 
-  let authHeader: Record<string, string> = {};
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('cf_hub_token');
-    if (token) {
-      authHeader = { Authorization: `Bearer ${token}` };
-    }
-  }
+  const authHeader = getAuthHeaders();
 
   const res = await fetch(url, {
     ...options,
@@ -61,4 +55,13 @@ export async function fetchApi<T>(path: string, options?: RequestInit): Promise<
   }
 
   return res.json();
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
+  const token = localStorage.getItem('cf_hub_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }

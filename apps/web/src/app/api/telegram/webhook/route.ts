@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { serverStore, fetchCF } from '@/lib/server-store';
 
 export const dynamic = 'force-dynamic';
 
 function getBotToken(): string {
-  try {
-    const s = serverStore.getSettings();
-    if (s.telegramBotToken) return s.telegramBotToken;
-  } catch {}
-  return process.env.TELEGRAM_BOT_TOKEN || '8844111620:AAGJ5RP8hCm9-q0b5ONFfFt4Ons5ZZJE3bo';
+  return process.env.TELEGRAM_BOT_TOKEN || serverStore.getSettings().telegramBotToken || '';
 }
 
 const WEB_URL = (process.env.WEB_URL || 'https://codeforces-classroom-hub.vercel.app').replace(/\/+$/, '');
@@ -16,6 +13,10 @@ const WEB_URL = (process.env.WEB_URL || 'https://codeforces-classroom-hub.vercel
 async function sendTelegramMessage(chatId: number | string, text: string, extra: any = {}) {
   try {
     const token = getBotToken();
+    if (!token) {
+      console.error('Telegram bot token is not configured.');
+      return;
+    }
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -35,6 +36,10 @@ async function sendTelegramMessage(chatId: number | string, text: string, extra:
 async function answerCallbackQuery(callbackQueryId: string, text?: string) {
   try {
     const token = getBotToken();
+    if (!token) {
+      console.error('Telegram bot token is not configured.');
+      return;
+    }
     await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -404,7 +409,15 @@ async function callAI(prompt: string): Promise<string> {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action');
+  if (action) {
+    const authError = requireAuth(req);
+    if (authError) return authError;
+  }
+
   const token = getBotToken();
+  if (action && !token) {
+    return NextResponse.json({ error: 'Telegram bot token is not configured.' }, { status: 503 });
+  }
 
   if (action === 'set') {
     const customUrl = searchParams.get('url');

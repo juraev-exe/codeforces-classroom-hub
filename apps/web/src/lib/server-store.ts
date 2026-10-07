@@ -118,7 +118,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   teacherHandle: 'AbubakrJ',
   teacherTitle: 'Lead Algorithms & CP Coach',
   acmpId: '515125',
-  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '8844111620:AAGJ5RP8hCm9-q0b5ONFfFt4Ons5ZZJE3bo',
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
   telegramAdminIds: process.env.TELEGRAM_ADMIN_IDS || '',
   contestAlertEnabled: true,
   contestAlertMinutesBefore: 30,
@@ -174,7 +174,10 @@ export async function sendTelegramNotification(
   customChatId?: string
 ): Promise<{ success: boolean; error?: string }> {
   const settings = { ...DEFAULT_SETTINGS, ...(memoryStore.settings || {}) };
-  const token = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN || '8844111620:AAGJ5RP8hCm9-q0b5ONFfFt4Ons5ZZJE3bo';
+  const token = process.env.TELEGRAM_BOT_TOKEN || settings.telegramBotToken || '';
+  if (!token) {
+    return { success: false, error: 'Telegram bot token is not configured' };
+  }
   const chatIds = customChatId
     ? [customChatId]
     : (settings.telegramAdminIds || process.env.TELEGRAM_ADMIN_IDS || '')

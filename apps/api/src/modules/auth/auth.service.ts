@@ -2,7 +2,15 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@cf-hub/database';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'cf_classroom_jwt_secret_2026_dev_key';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error('JWT_SECRET must be configured with at least 32 characters.');
+  }
+  return secret;
+}
+
+const JWT_SECRET = getJwtSecret();
 
 export interface UserPayload {
   id: string;
@@ -42,7 +50,24 @@ export class AuthService {
 
   verifyToken(token: string): UserPayload | null {
     try {
-      return jwt.verify(token, JWT_SECRET) as UserPayload;
+      const payload = jwt.verify(token, JWT_SECRET);
+      if (
+        typeof payload === 'string' ||
+        typeof payload.id !== 'string' ||
+        typeof payload.name !== 'string' ||
+        typeof payload.email !== 'string' ||
+        typeof payload.role !== 'string'
+      ) {
+        return null;
+      }
+      return {
+        id: payload.id,
+        name: payload.name,
+        email: payload.email,
+        role: payload.role,
+        codeforcesHandle:
+          typeof payload.codeforcesHandle === 'string' ? payload.codeforcesHandle : null,
+      };
     } catch {
       return null;
     }

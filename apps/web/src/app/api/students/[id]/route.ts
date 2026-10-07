@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { serverStore } from '@/lib/server-store';
 
 export const dynamic = 'force-dynamic';
@@ -20,9 +21,12 @@ export async function GET(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: { id: string } }
 ) {
+  const authError = requireAuth(req);
+  if (authError) return authError;
+
   try {
     await serverStore.syncFromSupabase().catch(() => {});
     const deleted = await serverStore.deleteStudent(params.id);
@@ -34,4 +38,3 @@ export async function DELETE(
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-

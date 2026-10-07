@@ -114,7 +114,7 @@ app.get('/api/students', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/students', async (req: Request, res: Response) => {
+app.post('/api/students', requireAuth, async (req: Request, res: Response) => {
   try {
     const { name, codeforcesHandle, classId, group } = req.body;
     if (!name || !codeforcesHandle || !classId) {
@@ -147,7 +147,7 @@ app.get('/api/students/:id', async (req: Request, res: Response) => {
   }
 });
 
-app.patch('/api/students/:id', async (req: Request, res: Response) => {
+app.patch('/api/students/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const updated = await studentsService.updateStudent(req.params.id, req.body);
     res.json(updated);
@@ -156,7 +156,7 @@ app.patch('/api/students/:id', async (req: Request, res: Response) => {
   }
 });
 
-app.delete('/api/students/:id', async (req: Request, res: Response) => {
+app.delete('/api/students/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     await studentsService.deleteStudent(req.params.id);
     res.json({ success: true, message: 'Student deleted successfully' });
@@ -165,7 +165,7 @@ app.delete('/api/students/:id', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/students/:id/sync', async (req: Request, res: Response) => {
+app.post('/api/students/:id/sync', requireAuth, async (req: Request, res: Response) => {
   try {
     const success = await syncService.syncStudent(req.params.id);
     if (!success) {
@@ -191,7 +191,7 @@ app.get('/api/classes', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/classes', async (req: Request, res: Response) => {
+app.post('/api/classes', requireAuth, async (req: Request, res: Response) => {
   try {
     const { name, description } = req.body;
     if (!name) {
@@ -297,7 +297,7 @@ app.get('/api/codeforces/user/:handle', async (req: Request, res: Response) => {
 // Sync Endpoints
 // ==========================================
 
-app.post('/api/sync/students', async (req: Request, res: Response) => {
+app.post('/api/sync/students', requireAuth, async (req: Request, res: Response) => {
   try {
     const result = await syncService.syncAllStudents();
     res.json(result);
@@ -306,7 +306,7 @@ app.post('/api/sync/students', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/sync/contests', async (req: Request, res: Response) => {
+app.post('/api/sync/contests', requireAuth, async (req: Request, res: Response) => {
   try {
     const count = await syncService.syncContests();
     res.json({ success: true, count, timestamp: new Date().toISOString() });
