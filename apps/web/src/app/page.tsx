@@ -62,6 +62,11 @@ import {
 } from '@/lib/cf-utils';
 import type { TeacherDashboardResponse, Classroom } from '@cf-hub/types';
 
+const DEFAULT_AVATAR =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'><rect width='40' height='40' rx='10' fill='%231e293b'/><circle cx='20' cy='15' r='6' fill='%2364748b'/><path d='M10 32c0-5 4.5-8 10-8s10 3 10 8' fill='%2364748b'/></svg>";
+const TEACHER_AVATAR =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'><rect width='40' height='40' rx='12' fill='%232563eb'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffffff' font-family='sans-serif' font-weight='bold' font-size='14'>AJ</text></svg>";
+
 function renderVerdictIcon(type: string) {
   switch (type) {
     case 'ok':
@@ -426,12 +431,13 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md w-fit shadow-xl">
                 <div className="relative">
                   <img
-                    src={teacher.avatar ? (teacher.avatar.startsWith('//') ? `https:${teacher.avatar}` : teacher.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'}
-                    alt={teacher.handle}
+                    src={teacher.avatar ? (teacher.avatar.startsWith('//') ? `https:${teacher.avatar}` : teacher.avatar) : TEACHER_AVATAR}
+                    referrerPolicy="no-referrer"
+                    alt={teacher.handle || "Teacher"}
                     className="w-12 h-12 rounded-xl object-cover ring-2 ring-blue-500/50 ring-offset-2 ring-offset-[#06070a] bg-black/40 shadow-md"
                     onError={(e) => {
                       (e.target as HTMLImageElement).onerror = null;
-                      (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg';
+                      (e.target as HTMLImageElement).src = TEACHER_AVATAR;
                     }}
                   />
                   <span className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-0.5 text-white ring-1 ring-black">
@@ -703,12 +709,13 @@ export default function DashboardPage() {
                         className="group flex items-center gap-2.5"
                       >
                         <img
-                          src={item.avatar ? (item.avatar.startsWith('//') ? `https:${item.avatar}` : item.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'}
+                          src={item.avatar ? (item.avatar.startsWith('//') ? `https:${item.avatar}` : item.avatar) : DEFAULT_AVATAR}
+                          referrerPolicy="no-referrer"
                           alt={item.handle}
                           className="w-7 h-7 rounded-lg object-cover border border-white/10 bg-black/40"
                           onError={(e) => {
                             (e.target as HTMLImageElement).onerror = null;
-                            (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg';
+                            (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
                           }}
                         />
                         <div>
@@ -1527,7 +1534,16 @@ export default function DashboardPage() {
               ((classSummary as any).liveStudents || []).map((student: any) => (
                 <div key={student.studentId} className="group flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all">
                   <div className="relative">
-                    <img src={student.avatar ? (student.avatar.startsWith('//') ? `https:${student.avatar}` : student.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} alt={student.handle} className="w-9 h-9 rounded-xl object-cover" onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }} />
+                    <img
+                      src={student.avatar ? (student.avatar.startsWith('//') ? `https:${student.avatar}` : student.avatar) : DEFAULT_AVATAR}
+                      referrerPolicy="no-referrer"
+                      alt={student.handle}
+                      className="w-9 h-9 rounded-xl object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).onerror = null;
+                        (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+                      }}
+                    />
                     <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-500 border-2 border-[#06070a] rounded-full animate-pulse"></span>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -1577,10 +1593,14 @@ export default function DashboardPage() {
                 <div key={s.studentId} className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition">
                   <div className="flex items-center gap-2.5">
                     <img
-                      src={s.avatar ? (s.avatar.startsWith('//') ? `https:${s.avatar}` : s.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'}
+                      src={s.avatar ? (s.avatar.startsWith('//') ? `https:${s.avatar}` : s.avatar) : DEFAULT_AVATAR}
+                      referrerPolicy="no-referrer"
                       alt={s.handle}
                       className="w-7 h-7 rounded-lg object-cover border border-white/10"
-                      onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).onerror = null;
+                        (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+                      }}
                     />
                     <div>
                       <span className="text-[11px] font-semibold text-zinc-100 block">{s.name}</span>

@@ -31,6 +31,9 @@ import { fetchApi } from '@/lib/api';
 import { getRankColor, getRankBadgeClass } from '@/lib/cf-utils';
 import type { Student, Classroom } from '@cf-hub/types';
 
+const DEFAULT_AVATAR =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'><rect width='40' height='40' rx='12' fill='%231e293b'/><circle cx='20' cy='15' r='6' fill='%2364748b'/><path d='M10 32c0-5 4.5-8 10-8s10 3 10 8' fill='%2364748b'/></svg>";
+
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Classroom[]>([]);
@@ -43,6 +46,7 @@ export default function StudentsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [handleInput, setHandleInput] = useState('');
+  const [ageInput, setAgeInput] = useState('');
   const [classInput, setClassInput] = useState('');
   const [groupInput, setGroupInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -174,6 +178,7 @@ export default function StudentsPage() {
           codeforcesHandle: handleInput.trim(),
           classId: classInput,
           group: groupInput.trim() || undefined,
+          age: ageInput ? parseInt(ageInput, 10) : undefined,
         }),
       });
 
@@ -191,6 +196,7 @@ export default function StudentsPage() {
       // Reset and close
       setNameInput('');
       setHandleInput('');
+      setAgeInput('');
       setGroupInput('');
       setIsModalOpen(false);
       await loadData();
@@ -429,7 +435,12 @@ export default function StudentsPage() {
                     <td className="py-4 px-5">
                       <div className="flex items-center gap-3.5">
                         <img
-                          src={s.stats?.avatar ? (s.stats?.avatar.startsWith('//') ? `https:${s.stats?.avatar}` : s.stats?.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
+                          src={s.stats?.avatar ? (s.stats?.avatar.startsWith('//') ? `https:${s.stats?.avatar}` : s.stats?.avatar) : DEFAULT_AVATAR}
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).onerror = null;
+                            (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+                          }}
                           alt={s.codeforcesHandle}
                           className="w-10 h-10 rounded-2xl object-cover border border-white/10 bg-black/40 shadow-sm"
                         />
@@ -444,6 +455,11 @@ export default function StudentsPage() {
                             <span className={`text-xs font-mono font-medium ${getRankColor(s.stats?.rank)}`}>
                               @{s.codeforcesHandle}
                             </span>
+                            {s.age && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">
+                                {s.age} y/o
+                              </span>
+                            )}
                             {s.group && (
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.05] text-zinc-400 border border-white/[0.06]">
                                 {s.group}
@@ -576,6 +592,21 @@ export default function StudentsPage() {
                   placeholder="e.g. Alice Johnson"
                   value={nameInput}
                   onChange={(e) => setNameInput(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 text-xs transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                  Age (Optional)
+                </label>
+                <input
+                  type="number"
+                  min="5"
+                  max="100"
+                  placeholder="e.g. 16 or 20"
+                  value={ageInput}
+                  onChange={(e) => setAgeInput(e.target.value)}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 text-xs transition"
                 />
               </div>

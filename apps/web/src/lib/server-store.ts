@@ -32,6 +32,9 @@ export interface StudentData {
   classId: string;
   className?: string;
   group?: string;
+  age?: number;
+  telegramChatId?: number | string;
+  telegramUsername?: string;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -118,7 +121,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   teacherHandle: 'AbubakrJ',
   teacherTitle: 'Lead Algorithms & CP Coach',
   acmpId: '515125',
-  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '8844111620:AAGJ5RP8hCm9-q0b5ONFfFt4Ons5ZZJE3bo',
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
   telegramAdminIds: process.env.TELEGRAM_ADMIN_IDS || '',
   contestAlertEnabled: true,
   contestAlertMinutesBefore: 30,
@@ -129,10 +132,22 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lastNotifiedContestIds: [],
 };
 
+export interface RegistrationSession {
+  step: 'waiting_name' | 'waiting_handle_or_link' | 'waiting_age' | 'waiting_confirmation';
+  name?: string;
+  codeforcesHandle?: string;
+  age?: number;
+  cfUser?: any;
+  solvedCount?: number;
+  classId?: string;
+  updatedAt: number;
+}
+
 interface StoreSchema {
   classes: ClassroomData[];
   students: StudentData[];
   settings?: AppSettings;
+  registrationSessions?: Record<string, RegistrationSession>;
 }
 
 function loadStore(): StoreSchema {
@@ -145,6 +160,7 @@ function loadStore(): StoreSchema {
           classes: parsed.classes,
           students: parsed.students,
           settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
+          registrationSessions: parsed.registrationSessions || {},
         };
       }
     }
@@ -155,6 +171,7 @@ function loadStore(): StoreSchema {
     classes: [...INITIAL_CLASSES],
     students: [...INITIAL_STUDENTS],
     settings: { ...DEFAULT_SETTINGS },
+    registrationSessions: {},
   };
 }
 
@@ -174,7 +191,10 @@ export async function sendTelegramNotification(
   customChatId?: string
 ): Promise<{ success: boolean; error?: string }> {
   const settings = { ...DEFAULT_SETTINGS, ...(memoryStore.settings || {}) };
-  const token = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN || '8844111620:AAGJ5RP8hCm9-q0b5ONFfFt4Ons5ZZJE3bo';
+  const token = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN || '';
+  if (!token) {
+    return { success: false, error: 'Telegram bot token is not configured in settings or environment' };
+  }
   const chatIds = customChatId
     ? [customChatId]
     : (settings.telegramAdminIds || process.env.TELEGRAM_ADMIN_IDS || '')
@@ -252,6 +272,9 @@ export const serverStore = {
             classId: row.class_id || row.classId || 'class-algorithms-2026',
             className: row.class_name || row.className || 'Algorithms & Competitive Programming 2026',
             group: row.group || 'Student',
+            age: row.age ? Number(row.age) : undefined,
+            telegramChatId: row.telegram_chat_id || row.telegramChatId || undefined,
+            telegramUsername: row.telegram_username || row.telegramUsername || undefined,
             active: row.active ?? true,
             createdAt: row.created_at || row.createdAt || new Date().toISOString(),
             updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
@@ -344,6 +367,9 @@ export const serverStore = {
     codeforcesHandle: string;
     classId: string;
     group?: string;
+    age?: number;
+    telegramChatId?: number | string;
+    telegramUsername?: string;
   }): Promise<StudentData> {
     const handle = data.codeforcesHandle.trim();
     const existing = memoryStore.students.find(
@@ -401,6 +427,9 @@ export const serverStore = {
       classId: cls.id,
       className: cls.name,
       group: data.group || 'Student',
+      age: data.age,
+      telegramChatId: data.telegramChatId,
+      telegramUsername: data.telegramUsername,
       active: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -450,23 +479,24 @@ export const serverStore = {
 
     // Persist permanently to Supabase cloud
     try {
-      await supabase.from('students').upsert(
-        {
-          id: newStudent.id,
-          name: newStudent.name,
-          codeforces_handle: newStudent.codeforcesHandle,
-          class_id: newStudent.classId,
-          class_name: newStudent.className,
-          group: newStudent.group,
-          active: newStudent.active,
-          stats: newStudent.stats,
-          submissions: newStudent.submissions || [],
-          contest_participations: newStudent.contestParticipations || [],
-          created_at: newStudent.createdAt,
-          updated_at: newStudent.updatedAt,
-        },
-        { onConflict: 'codeforces_handle' }
-      );
+      const supaPayload: any = {
+        id: newStudent.id,
+        name: newStudent.name,
+        codeforces_handle: newStudent.codeforcesHandle,
+        class_id: newStudent.classId,
+        class_name: newStudent.className,
+        group: newStudent.group,
+        active: newStudent.active,
+        stats: newStudent.stats,
+        submissions: newStudent.submissions || [],
+        contest_participations: newStudent.contestParticipations || [],
+        created_at: newStudent.createdAt,
+        updated_at: newStudent.updatedAt,
+      };
+      if (newStudent.age !== undefined) {
+        supaPayload.age = newStudent.age;
+      }
+      await supabase.from('students').upsert(supaPayload, { onConflict: 'codeforces_handle' });
     } catch (supaErr) {
       console.warn('[Supabase Upsert] Warning:', supaErr);
     }
@@ -508,6 +538,39 @@ export const serverStore = {
     saveStore(memoryStore);
 
     return supabaseDeleted || memoryDeleted;
+  },
+
+  getRegistrationSession(chatId: string | number): RegistrationSession | null {
+    const key = String(chatId);
+    const session = memoryStore.registrationSessions?.[key];
+    if (!session) return null;
+    // Expire session after 30 minutes of inactivity
+    if (Date.now() - session.updatedAt > 30 * 60 * 1000) {
+      if (memoryStore.registrationSessions) {
+        delete memoryStore.registrationSessions[key];
+        saveStore(memoryStore);
+      }
+      return null;
+    }
+    return session;
+  },
+
+  setRegistrationSession(chatId: string | number, session: RegistrationSession): void {
+    if (!memoryStore.registrationSessions) {
+      memoryStore.registrationSessions = {};
+    }
+    memoryStore.registrationSessions[String(chatId)] = {
+      ...session,
+      updatedAt: Date.now(),
+    };
+    saveStore(memoryStore);
+  },
+
+  clearRegistrationSession(chatId: string | number): void {
+    if (memoryStore.registrationSessions?.[String(chatId)]) {
+      delete memoryStore.registrationSessions[String(chatId)];
+      saveStore(memoryStore);
+    }
   },
 
   async syncStudent(id: string): Promise<StudentData | null> {

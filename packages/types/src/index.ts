@@ -153,6 +153,7 @@ export interface Student {
   codeforcesHandle: string;
   classId: string;
   group?: string | null;
+  age?: number | null;
   active: boolean;
   createdAt: string;
   updatedAt: string;

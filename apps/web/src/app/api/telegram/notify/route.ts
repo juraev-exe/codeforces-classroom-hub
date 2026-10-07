@@ -10,9 +10,22 @@ export async function POST(req: Request) {
 
     if (type === 'test') {
       const settings = serverStore.getSettings();
-      const customChatId = body.chatId || undefined;
+      const allowedAdminIds = (settings.telegramAdminIds || process.env.TELEGRAM_ADMIN_IDS || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const customChatId = body.chatId ? String(body.chatId).trim() : undefined;
+      if (customChatId && allowedAdminIds.length > 0 && !allowedAdminIds.includes(customChatId)) {
+        return NextResponse.json(
+          { success: false, error: 'Custom chat ID is not authorized for dispatch' },
+          { status: 403 }
+        );
+      }
+
+      const rawMsg = typeof body.message === 'string' ? body.message.slice(0, 500) : null;
       const testMsg =
-        body.message ||
+        rawMsg ||
         `🔔 *Codeforces Classroom Hub — Live Test Alert*
 
 Status: *Active & Connected* ✅

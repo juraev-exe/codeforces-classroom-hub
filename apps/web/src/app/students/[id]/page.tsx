@@ -31,6 +31,9 @@ import { fetchApi } from '@/lib/api';
 import { getRankColor, getRankBadgeClass, getVerdictBadge } from '@/lib/cf-utils';
 import type { StudentDetailResponse } from '@cf-hub/types';
 
+const DEFAULT_AVATAR =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'><rect width='40' height='40' rx='12' fill='%231e293b'/><circle cx='20' cy='15' r='6' fill='%2364748b'/><path d='M10 32c0-5 4.5-8 10-8s10 3 10 8' fill='%2364748b'/></svg>";
+
 export default function StudentDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -134,7 +137,12 @@ export default function StudentDetailPage() {
 
         <div className="flex items-center gap-5">
           <img
-            src={stats?.avatar ? (stats?.avatar.startsWith('//') ? `https:${stats?.avatar}` : stats?.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
+            src={stats?.avatar ? (stats?.avatar.startsWith('//') ? `https:${stats?.avatar}` : stats?.avatar) : DEFAULT_AVATAR}
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              (e.target as HTMLImageElement).onerror = null;
+              (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+            }}
             alt={student.codeforcesHandle}
             className="w-20 h-20 rounded-2xl border border-white/15 object-cover bg-black/50 shadow-xl"
           />
@@ -158,6 +166,12 @@ export default function StudentDetailPage() {
               </a>
               <span className="text-zinc-600">&bull;</span>
               <span className="text-zinc-400">Class: {student.className || 'General'}</span>
+              {student.age && (
+                <>
+                  <span className="text-zinc-600">&bull;</span>
+                  <span className="text-zinc-400">Age: {student.age}</span>
+                </>
+              )}
               {student.group && (
                 <>
                   <span className="text-zinc-600">&bull;</span>

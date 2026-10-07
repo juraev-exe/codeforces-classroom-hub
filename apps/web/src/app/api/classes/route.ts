@@ -15,10 +15,12 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const { name, description } = await req.json();
-    if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json({ error: 'Valid classroom name is required' }, { status: 400 });
     }
-    const created = serverStore.addClassroom(name, description);
+    const cleanName = name.trim().slice(0, 100);
+    const cleanDesc = description && typeof description === 'string' ? description.trim().slice(0, 500) : undefined;
+    const created = serverStore.addClassroom(cleanName, cleanDesc);
     return NextResponse.json(created, { status: 201 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });

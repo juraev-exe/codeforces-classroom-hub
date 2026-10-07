@@ -19,18 +19,52 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { name, codeforcesHandle, classId, group } = body;
+    const { name, codeforcesHandle, classId, group, age, telegramChatId, telegramUsername } = body;
     if (!name || !codeforcesHandle || !classId) {
       return NextResponse.json(
         { error: 'Name, codeforcesHandle, and classId are required.' },
         { status: 400 }
       );
     }
+
+    const trimmedName = String(name).trim().slice(0, 80);
+    const cleanHandle = String(codeforcesHandle).trim().replace(/^@/, '');
+
+    // Strictly validate Codeforces handle format
+    if (!/^[a-zA-Z0-9_\-\.]{3,30}$/.test(cleanHandle)) {
+      return NextResponse.json(
+        { error: 'Invalid Codeforces handle. Must be 3-30 alphanumeric characters, dots, underscores, or hyphens.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate age if provided
+    let parsedAge: number | undefined = undefined;
+    if (age !== undefined && age !== null && age !== '') {
+      const numAge = Number(age);
+      if (isNaN(numAge) || numAge < 5 || numAge > 120) {
+        return NextResponse.json(
+          { error: 'Invalid age. Must be a valid number between 5 and 120.' },
+          { status: 400 }
+        );
+      }
+      parsedAge = Math.floor(numAge);
+    }
+
+    const cleanClassId = String(classId).trim().slice(0, 50);
+    const cleanGroup = group ? String(group).trim().slice(0, 50) : undefined;
+    const cleanTelegramUsername = telegramUsername
+      ? String(telegramUsername).trim().replace(/^@/, '').slice(0, 50)
+      : undefined;
+
     const student = await serverStore.addStudent({
-      name,
-      codeforcesHandle,
-      classId,
-      group,
+      name: trimmedName,
+      codeforcesHandle: cleanHandle,
+      classId: cleanClassId,
+      group: cleanGroup,
+      age: parsedAge,
+      telegramChatId: telegramChatId ? String(telegramChatId).trim() : undefined,
+      telegramUsername: cleanTelegramUsername,
     });
     return NextResponse.json(student, { status: 201 });
   } catch (err: any) {

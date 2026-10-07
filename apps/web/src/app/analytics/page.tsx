@@ -73,6 +73,9 @@ import {
 } from '@/lib/cf-utils';
 import type { ClassSummary, Classroom, SubmissionRecord } from '@cf-hub/types';
 
+const DEFAULT_AVATAR =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'><rect width='40' height='40' rx='12' fill='%231e293b'/><circle cx='20' cy='15' r='6' fill='%2364748b'/><path d='M10 32c0-5 4.5-8 10-8s10 3 10 8' fill='%2364748b'/></svg>";
+
 function renderVerdictIcon(type: string) {
   switch (type) {
     case 'ok':
@@ -1617,7 +1620,12 @@ function AnalyticsContent() {
                             <td className="py-3.5 px-4">
                               <div className="flex items-center gap-2.5">
                                 <img
-                                  src={sub.studentAvatar || 'https://userpic.codeforces.org/no-avatar.jpg'}
+                                  src={sub.studentAvatar || DEFAULT_AVATAR}
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).onerror = null;
+                                    (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+                                  }}
                                   alt=""
                                   className="w-7 h-7 rounded-full border border-white/10 shrink-0"
                                 />
@@ -1759,7 +1767,12 @@ function AnalyticsContent() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <img
-                              src={sub.studentAvatar || 'https://userpic.codeforces.org/no-avatar.jpg'}
+                              src={sub.studentAvatar || DEFAULT_AVATAR}
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).onerror = null;
+                                (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+                              }}
                               alt=""
                               className="w-6 h-6 rounded-full border border-white/10"
                             />
@@ -2091,7 +2104,12 @@ function AnalyticsContent() {
                             #{idx + 1}
                           </span>
                           <img
-                            src={s.avatar || 'https://userpic.codeforces.org/no-avatar.jpg'}
+                            src={s.avatar || DEFAULT_AVATAR}
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).onerror = null;
+                              (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+                            }}
                             alt=""
                             className="w-8 h-8 rounded-full border border-white/10 shrink-0"
                           />

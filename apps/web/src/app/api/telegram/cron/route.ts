@@ -5,6 +5,14 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
+    // If CRON_SECRET is configured, require Authorization header
+    if (process.env.CRON_SECRET) {
+      const auth = req.headers.get('authorization');
+      if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+        return NextResponse.json({ error: 'Unauthorized cron trigger' }, { status: 401 });
+      }
+    }
+
     // Sync state from Supabase
     await serverStore.syncFromSupabase();
 

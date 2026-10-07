@@ -5,8 +5,18 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const settings = serverStore.getSettings();
+    const rawSettings = serverStore.getSettings();
     const health = serverStore.getStorageHealth();
+
+    // Mask sensitive secrets to prevent exposure
+    const settings = {
+      ...rawSettings,
+      telegramBotToken: rawSettings.telegramBotToken
+        ? `${rawSettings.telegramBotToken.slice(0, 4)}••••••••${rawSettings.telegramBotToken.slice(-4)}`
+        : '',
+      cfApiSecret: rawSettings.cfApiSecret ? '••••••••••••••••' : '',
+    };
+
     return NextResponse.json({
       settings,
       health,
@@ -19,11 +29,30 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const current = serverStore.getSettings();
+
+    // If masked placeholder was sent back, preserve existing secrets
+    if (body.telegramBotToken && body.telegramBotToken.includes('••••')) {
+      body.telegramBotToken = current.telegramBotToken;
+    }
+    if (body.cfApiSecret && body.cfApiSecret.includes('••••')) {
+      body.cfApiSecret = current.cfApiSecret;
+    }
+
     const updated = serverStore.updateSettings(body);
     const health = serverStore.getStorageHealth();
+
+    const maskedUpdated = {
+      ...updated,
+      telegramBotToken: updated.telegramBotToken
+        ? `${updated.telegramBotToken.slice(0, 4)}••••••••${updated.telegramBotToken.slice(-4)}`
+        : '',
+      cfApiSecret: updated.cfApiSecret ? '••••••••••••••••' : '',
+    };
+
     return NextResponse.json({
       success: true,
-      settings: updated,
+      settings: maskedUpdated,
       health,
     });
   } catch (err: any) {
