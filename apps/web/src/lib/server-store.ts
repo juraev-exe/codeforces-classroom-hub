@@ -1427,31 +1427,57 @@ export const serverStore = {
       const startTime = Math.floor(new Date(contest.startTime).getTime() / 1000);
       const minutesRemaining = Math.floor((startTime - now) / 60);
 
-      if (minutesRemaining > 0 && minutesRemaining <= minutesThreshold + 5) {
-        if (!notifiedIds.has(contestId)) {
-          const durationHours = Math.floor(contest.durationSeconds / 3600);
-          const durationMinutes = Math.floor((contest.durationSeconds % 3600) / 60);
-          const durationStr = `${durationHours}h ${durationMinutes > 0 ? `${durationMinutes}m` : ''}`.trim();
+      const durationHours = Math.floor(contest.durationSeconds / 3600);
+      const durationMinutes = Math.floor((contest.durationSeconds % 3600) / 60);
+      const durationStr = `${durationHours}h ${durationMinutes > 0 ? `${durationMinutes}m` : ''}`.trim();
 
+      const key2h = `${contestId}:2h`;
+      const keyUrgent = `${contestId}:urgent`;
+
+      // Tier 1: 2-hour advance reminder (90m - 135m before start)
+      if (minutesRemaining >= 90 && minutesRemaining <= 135) {
+        if (!notifiedIds.has(key2h)) {
           const message = 
-`🏆 *CODEFORCES CONTEST REMINDER*
+`🏆 *CODEFORCES ADVANCE CONTEST NOTICE* (2h Reminder)
+
+*${contest.name}*
+
+⏰ Starts in: ~${minutesRemaining} minutes (~2 hours)
+⏱ Duration: ${durationStr}
+🔗 [Contest Registration](https://codeforces.com/contestRegistration/${contestId})
+
+Registration is open! Secure your spot now. 🚀`;
+
+          await sendTelegramNotification(message);
+          notifiedIds.add(key2h);
+          alerted.push({ contestId, tier: '2h', name: contest.name, minutesRemaining });
+        } else {
+          skipped.push({ contestId, name: contest.name, reason: 'Already notified for 2h window' });
+        }
+      } 
+      // Tier 2: Urgent final reminder (~30m before start)
+      else if (minutesRemaining > 0 && minutesRemaining <= minutesThreshold + 5) {
+        if (!notifiedIds.has(keyUrgent) && !notifiedIds.has(contestId)) {
+          const message = 
+`🚨 *CODEFORCES ROUND STARTING SOON* (Urgent Reminder)
 
 *${contest.name}*
 
 ⏰ Starts in: ~${minutesRemaining} minutes
 ⏱ Duration: ${durationStr}
-🔗 [Contest Registration](https://codeforces.com/contestRegistration/${contestId})
+🔗 [Direct Contest Link](https://codeforces.com/contestRegistration/${contestId})
 
-Good luck to all students! 🚀`;
+Warm up your IDE and test environment! Good luck to all students! ⚡`;
 
           await sendTelegramNotification(message);
+          notifiedIds.add(keyUrgent);
           notifiedIds.add(contestId);
-          alerted.push({ contestId, name: contest.name, minutesRemaining });
+          alerted.push({ contestId, tier: 'urgent', name: contest.name, minutesRemaining });
         } else {
-          skipped.push({ contestId, name: contest.name, reason: 'Already notified' });
+          skipped.push({ contestId, name: contest.name, reason: 'Already notified for urgent window' });
         }
       } else {
-        skipped.push({ contestId, name: contest.name, reason: `${minutesRemaining}m remaining` });
+        skipped.push({ contestId, name: contest.name, reason: `${minutesRemaining}m remaining (outside alert windows)` });
       }
     }
 

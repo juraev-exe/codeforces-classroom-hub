@@ -19,7 +19,14 @@ import {
   Activity,
   Layers,
   Link2,
+  Share2,
+  Download,
+  Printer,
+  Copy,
+  Check,
+  Sparkles,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { fetchApi } from '@/lib/api';
 import { getRankColor, getRankBadgeClass } from '@/lib/cf-utils';
 import type { Student, Classroom } from '@cf-hub/types';
@@ -41,9 +48,42 @@ export default function StudentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
+  // Executive Report Modal State
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportCopied, setReportCopied] = useState(false);
+
   // Row sync tracking
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  function exportStudentsCsv() {
+    if (students.length === 0) return;
+    const headers = ['Name', 'Codeforces Handle', 'Rating', 'Rank', 'Max Rating', 'Solved Problems', 'Contest Count', 'Active'];
+    const rows = students.map((s) => [
+      s.name,
+      s.codeforcesHandle,
+      s.stats?.rating || 0,
+      s.stats?.rank || 'unrated',
+      s.stats?.maxRating || 0,
+      s.stats?.solvedCount || 0,
+      s.stats?.contestCount || 0,
+      s.active ? 'Yes' : 'No',
+    ]);
+    const escapeCsv = (val: string | number) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+    const content = [
+      headers.map(escapeCsv).join(','),
+      ...rows.map((row) => row.map(escapeCsv).join(',')),
+    ].join('\r\n');
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cf-students-roster-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   function copyJoinLink() {
     if (typeof window !== 'undefined') {
@@ -211,9 +251,13 @@ export default function StudentsPage() {
   });
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 relative pb-12">
+      {/* Ambient Blurred Backlight Orbs */}
+      <div className="absolute top-10 left-10 w-96 h-96 rounded-full glass-ambient-cyan blur-3xl pointer-events-none -z-10" />
+      <div className="absolute top-36 right-10 w-96 h-96 rounded-full glass-ambient-purple blur-3xl pointer-events-none -z-10" />
+
       {/* Top Header Card */}
-      <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/[0.08] relative overflow-hidden">
+      <div className="glass-panel-elevated rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -236,6 +280,24 @@ export default function StudentsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => setReportModalOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 text-blue-200 hover:text-white rounded-xl text-xs font-semibold transition-all border border-blue-500/30 active:scale-[0.97] shadow-lg shadow-blue-500/10"
+              title="Generate printable Executive Briefing"
+            >
+              <Share2 className="w-4 h-4 text-cyan-400" />
+              <span>Export Report</span>
+            </button>
+
+            <button
+              onClick={exportStudentsCsv}
+              className="flex items-center justify-center gap-2 px-3.5 py-2.5 glass-pill hover:bg-white/[0.08] text-zinc-300 hover:text-white rounded-xl text-xs font-semibold transition-all border border-white/10 active:scale-[0.97]"
+              title="Download CSV roster"
+            >
+              <Download className="w-4 h-4 text-emerald-400" />
+              <span>CSV</span>
+            </button>
+
             <button
               onClick={copyJoinLink}
               className="flex items-center justify-center gap-2 px-4 py-2.5 glass-pill hover:bg-white/[0.08] text-zinc-200 hover:text-white rounded-xl text-xs font-semibold transition-all border border-white/10 active:scale-[0.97]"
@@ -586,6 +648,169 @@ export default function StudentsPage() {
           </div>
         </div>
       )}
+
+      {/* Executive Report Modal (Printable & Shareable) */}
+      <AnimatePresence>
+        {reportModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full max-w-4xl glass-panel-elevated p-6 sm:p-8 rounded-3xl shadow-2xl border border-white/20 space-y-6 my-8 max-h-[90vh] overflow-y-auto custom-scrollbar"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white tracking-tight">Classroom Roster & Performance Report</h2>
+                    <p className="text-xs text-zinc-400">
+                      Algorithms & Competitive Programming 2026 • Coach Abubakr Juraev
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setReportModalOpen(false)}
+                  className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/10 text-zinc-400 hover:text-white transition"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Printable Body Content */}
+              <div className="space-y-6 text-zinc-200 text-xs">
+                {/* Highlights Table */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1">
+                    <span className="text-[10px] text-zinc-400 uppercase font-semibold">Total Students</span>
+                    <div className="text-xl font-bold text-blue-400 font-mono">{students.length}</div>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1">
+                    <span className="text-[10px] text-zinc-400 uppercase font-semibold">Active Solvers</span>
+                    <div className="text-xl font-bold text-emerald-400 font-mono">
+                      {students.filter((s) => s.active).length}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1">
+                    <span className="text-[10px] text-zinc-400 uppercase font-semibold">Class Avg Rating</span>
+                    <div className="text-xl font-bold text-purple-400 font-mono">
+                      {students.length > 0
+                        ? Math.round(
+                            students.reduce((acc, s) => acc + (s.stats?.rating || 0), 0) /
+                              Math.max(1, students.filter((s) => (s.stats?.rating || 0) > 0).length)
+                          )
+                        : 0}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1">
+                    <span className="text-[10px] text-zinc-400 uppercase font-semibold">Total Problems Solved</span>
+                    <div className="text-xl font-bold text-amber-400 font-mono">
+                      {students.reduce((acc, s) => acc + (s.stats?.solvedCount || 0), 0)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Student Roster Standings Table */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                    Enrolled Student Roster ({students.length})
+                  </span>
+                  <div className="rounded-2xl border border-white/10 overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-white/[0.05] text-[10px] font-bold uppercase text-zinc-400">
+                        <tr>
+                          <th className="py-2.5 px-3">#</th>
+                          <th className="py-2.5 px-3">Student Name</th>
+                          <th className="py-2.5 px-3">Handle</th>
+                          <th className="py-2.5 px-3">Rating</th>
+                          <th className="py-2.5 px-3">Rank Title</th>
+                          <th className="py-2.5 px-3">Solved</th>
+                          <th className="py-2.5 px-3">Contests</th>
+                          <th className="py-2.5 px-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.05] font-mono">
+                        {students
+                          .slice()
+                          .sort((a, b) => (b.stats?.rating || 0) - (a.stats?.rating || 0))
+                          .map((s, idx) => (
+                            <tr key={s.id} className="hover:bg-white/[0.02]">
+                              <td className="py-2 px-3 text-zinc-500">#{idx + 1}</td>
+                              <td className="py-2 px-3 font-sans font-semibold text-zinc-200">{s.name}</td>
+                              <td className="py-2 px-3 text-cyan-400">@{s.codeforcesHandle}</td>
+                              <td className={`py-2 px-3 font-bold ${getRankColor(s.stats?.rank || 'unrated')}`}>
+                                {s.stats?.rating || 0}
+                              </td>
+                              <td className="py-2 px-3 uppercase text-[10px] text-zinc-400 font-sans">
+                                {s.stats?.rank || 'unrated'}
+                              </td>
+                              <td className="py-2 px-3 text-emerald-400">{s.stats?.solvedCount || 0}</td>
+                              <td className="py-2 px-3 text-purple-400">{s.stats?.contestCount || 0}</td>
+                              <td className="py-2 px-3 font-sans">
+                                <span className={`px-2 py-0.5 rounded text-[10px] ${s.active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-800 text-zinc-500'}`}>
+                                  {s.active ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer Controls */}
+              <div className="flex items-center justify-between border-t border-white/10 pt-4">
+                <span className="text-[11px] text-zinc-500 font-mono">
+                  Generated on {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const md =
+                        `# Classroom Student Roster Report\n` +
+                        `*Date:* ${new Date().toLocaleDateString()}\n` +
+                        `*Coach:* Abubakr Juraev\n` +
+                        `*Total Enrolled:* ${students.length}\n` +
+                        `*Active Members:* ${students.filter((s) => s.active).length}\n\n` +
+                        `## Student Standings\n` +
+                        students
+                          .slice()
+                          .sort((a, b) => (b.stats?.rating || 0) - (a.stats?.rating || 0))
+                          .map(
+                            (s, i) =>
+                              `${i + 1}. **${s.name}** (@${s.codeforcesHandle}) - Rating: ${s.stats?.rating || 0} (${s.stats?.rank || 'unrated'}), Solved: ${s.stats?.solvedCount || 0}`
+                          )
+                          .join('\n');
+                      navigator.clipboard.writeText(md);
+                      setReportCopied(true);
+                      setTimeout(() => setReportCopied(false), 2000);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/10 text-xs font-semibold text-zinc-200 hover:text-white transition flex items-center gap-1.5"
+                  >
+                    {reportCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{reportCopied ? 'Copied Markdown!' : 'Copy Markdown'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => window.print()}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition flex items-center gap-1.5 shadow-lg shadow-blue-600/30"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Print / Save PDF</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

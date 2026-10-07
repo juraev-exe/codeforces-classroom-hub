@@ -75,6 +75,53 @@ body {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
+/* Elevated VisionOS / macOS Style Frosted Glass */
+.glass-panel-elevated {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%), rgba(13, 17, 28, 0.78);
+  backdrop-filter: blur(32px) saturate(210%);
+  -webkit-backdrop-filter: blur(32px) saturate(210%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.glass-card-interactive {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 100%), rgba(18, 24, 38, 0.68);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.glass-card-interactive:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.03) 100%), rgba(22, 30, 48, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5), 0 0 25px rgba(56, 189, 248, 0.08);
+}
+
+.glass-ambient-cyan {
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(56, 189, 248, 0) 70%);
+}
+
+.glass-ambient-purple {
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0) 70%);
+}
+
+.glass-ambient-emerald {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0) 70%);
+}
+
+.glass-tag {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
 /* Apple-style Interactive Press Feedback (instant pointer-down, spring settle) */
 button, a.button-interactive, .interactive-item {
   cursor: pointer;
@@ -107,6 +154,35 @@ button:active:not(:disabled), a.button-interactive:active, .interactive-item:act
   font-variant-numeric: tabular-nums;
 }
 
+/* Apple Typography Foundations: Optical Sizing & Dynamic Tracking */
+h1, h2, h3, .heading-display {
+  letter-spacing: -0.025em; /* Negative tracking for large text */
+  line-height: 1.15;
+}
+
+.caption-label {
+  letter-spacing: 0.04em; /* Positive tracking for small uppercase labels */
+  text-transform: uppercase;
+}
+
+/* Apple Vibrancy on Translucent Surfaces */
+.apple-vibrancy {
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* Accessibility: Prefers Reduced Transparency */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel,
+  .glass-panel-elevated,
+  .glass-card,
+  .glass-card-interactive {
+    background: #0d111c !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
@@ -115,5 +191,52 @@ button:active:not(:disabled), a.button-interactive:active, .interactive-item:act
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
     transform: none !important;
+  }
+}
+
+/* Print & PDF Document Generation Optimization */
+@media print {
+  @page {
+    margin: 1.5cm;
+    size: auto;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  header, nav, aside, footer, button, .no-print {
+    display: none !important;
+  }
+
+  .glass-panel,
+  .glass-panel-elevated,
+  .glass-card,
+  .glass-card-interactive {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .text-white, .text-zinc-200, .text-zinc-300, .text-zinc-400 {
+    color: #1f2937 !important;
+  }
+
+  .text-zinc-500 {
+    color: #6b7280 !important;
+  }
+
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th, td {
+    border-bottom: 1px solid #e5e7eb !important;
+    color: #111827 !important;
   }
 }
