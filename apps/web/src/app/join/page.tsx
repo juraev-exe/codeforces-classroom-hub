@@ -26,6 +26,11 @@ import { fetchApi } from '@/lib/api';
 import { getRankColor, getRankBadgeClass } from '@/lib/cf-utils';
 import type { Classroom, Student } from '@cf-hub/types';
 
+const DEFAULT_AVATAR =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'><rect width='40' height='40' rx='12' fill='%231e293b'/><circle cx='20' cy='15' r='6' fill='%2364748b'/><path d='M10 32c0-5 4.5-8 10-8s10 3 10 8' fill='%2364748b'/></svg>";
+const TEACHER_AVATAR =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'><rect width='40' height='40' rx='12' fill='%232563eb'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffffff' font-family='sans-serif' font-weight='bold' font-size='14'>AJ</text></svg>";
+
 function JoinContent() {
   const searchParams = useSearchParams();
   const preselectedClassId = searchParams.get('classId') || '';
@@ -37,6 +42,7 @@ function JoinContent() {
   // Form State
   const [name, setName] = useState('');
   const [handle, setHandle] = useState('');
+  const [age, setAge] = useState('');
   const [group, setGroup] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +98,7 @@ function JoinContent() {
           codeforcesHandle: handle.trim(),
           classId: selectedClassId,
           group: group.trim() || 'Student',
+          age: age ? parseInt(age, 10) : undefined,
         }),
       });
 
@@ -158,7 +165,12 @@ function JoinContent() {
             <div className="pt-3 border-t border-white/[0.06] flex items-center justify-center gap-3">
               <div className="relative">
                 <img
-                  src={teacher.avatar ? (teacher.avatar.startsWith('//') ? `https:${teacher.avatar}` : teacher.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
+                  src={teacher.avatar ? (teacher.avatar.startsWith('//') ? `https:${teacher.avatar}` : teacher.avatar) : TEACHER_AVATAR}
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).onerror = null;
+                    (e.target as HTMLImageElement).src = TEACHER_AVATAR;
+                  }}
                   alt={teacher.handle}
                   className="w-9 h-9 rounded-xl object-cover border border-white/10 bg-black/40 shadow-sm ring-1 ring-blue-500/40"
                 />
@@ -199,7 +211,12 @@ function JoinContent() {
           <div className="glass-card p-4 rounded-2xl border border-white/[0.08] flex items-center justify-between gap-4 max-w-sm mx-auto text-left shadow-xl">
             <div className="flex items-center gap-3">
               <img
-                src={joinedStudent.stats?.avatar ? (joinedStudent.stats?.avatar.startsWith('//') ? `https:${joinedStudent.stats?.avatar}` : joinedStudent.stats?.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
+                src={joinedStudent.stats?.avatar ? (joinedStudent.stats?.avatar.startsWith('//') ? `https:${joinedStudent.stats?.avatar}` : joinedStudent.stats?.avatar) : DEFAULT_AVATAR}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).onerror = null;
+                  (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+                }}
                 alt={handle}
                 className="w-12 h-12 rounded-xl object-cover border border-white/10 bg-black/40"
               />
@@ -274,6 +291,22 @@ function JoinContent() {
                 placeholder="e.g. Alex Morgan"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 text-xs transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1.5 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>Age (Optional)</span>
+              </label>
+              <input
+                type="number"
+                min="5"
+                max="100"
+                placeholder="e.g. 16 or 20"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 text-xs transition"
               />
             </div>

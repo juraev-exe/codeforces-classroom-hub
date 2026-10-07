@@ -1,6 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import { supabase } from './supabase';
+import type {
+  Assignment,
+  AssignmentProblem,
+  AssignmentWithProgress,
+  StudentAssignmentProgress,
+} from '@cf-hub/types';
 
 export interface ClassroomData {
   id: string;
@@ -32,6 +38,9 @@ export interface StudentData {
   classId: string;
   className?: string;
   group?: string;
+  age?: number;
+  telegramChatId?: number | string;
+  telegramUsername?: string;
   active: boolean;
   createdAt: string;
   updatedAt: string;
@@ -129,10 +138,90 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lastNotifiedContestIds: [],
 };
 
+export interface RegistrationSession {
+  step: 'waiting_name' | 'waiting_handle_or_link' | 'waiting_age' | 'waiting_confirmation';
+  name?: string;
+  codeforcesHandle?: string;
+  age?: number;
+  cfUser?: any;
+  solvedCount?: number;
+  classId?: string;
+  updatedAt: number;
+}
+
+const DEFAULT_ASSIGNMENTS: Assignment[] = [
+  {
+    id: 'assign-dp-drill-1',
+    title: 'Dynamic Programming Foundations: 1D & Subsequences',
+    description: 'Master core transition state formulation on classic Div. 2 / Div. 3 problems.',
+    classId: 'class-olympiad-2026',
+    className: 'Olympiad Algorithms 2026',
+    problems: [
+      {
+        id: '706B',
+        contestId: 706,
+        index: 'B',
+        name: 'Interesting drink',
+        rating: 1100,
+        url: 'https://codeforces.com/problemset/problem/706/B',
+      },
+      {
+        id: '455A',
+        contestId: 455,
+        index: 'A',
+        name: 'Boredom',
+        rating: 1500,
+        url: 'https://codeforces.com/problemset/problem/455/A',
+      },
+      {
+        id: '189A',
+        contestId: 189,
+        index: 'A',
+        name: 'Cut Ribbon',
+        rating: 1300,
+        url: 'https://codeforces.com/problemset/problem/189/A',
+      },
+    ],
+    dueDate: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+  },
+  {
+    id: 'assign-bs-pointers-2',
+    title: 'Two Pointers & Binary Search on Answer',
+    description: 'Precision binary search conditions and sliding window optimizations.',
+    classId: 'class-olympiad-2026',
+    className: 'Olympiad Algorithms 2026',
+    problems: [
+      {
+        id: '279B',
+        contestId: 279,
+        index: 'B',
+        name: 'Books',
+        rating: 1400,
+        url: 'https://codeforces.com/problemset/problem/279/B',
+      },
+      {
+        id: '670D1',
+        contestId: 670,
+        index: 'D1',
+        name: 'Magic Powder - 1',
+        rating: 1200,
+        url: 'https://codeforces.com/problemset/problem/670/D1',
+      },
+    ],
+    dueDate: new Date(Date.now() + 4 * 24 * 3600 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(),
+  },
+];
+
 interface StoreSchema {
   classes: ClassroomData[];
   students: StudentData[];
   settings?: AppSettings;
+  registrationSessions?: Record<string, RegistrationSession>;
+  assignments?: Assignment[];
 }
 
 function loadStore(): StoreSchema {
@@ -145,6 +234,10 @@ function loadStore(): StoreSchema {
           classes: parsed.classes,
           students: parsed.students,
           settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
+          registrationSessions: parsed.registrationSessions || {},
+          assignments: Array.isArray(parsed.assignments)
+            ? parsed.assignments
+            : [...DEFAULT_ASSIGNMENTS],
         };
       }
     }
@@ -155,6 +248,8 @@ function loadStore(): StoreSchema {
     classes: [...INITIAL_CLASSES],
     students: [...INITIAL_STUDENTS],
     settings: { ...DEFAULT_SETTINGS },
+    registrationSessions: {},
+    assignments: [...DEFAULT_ASSIGNMENTS],
   };
 }
 
@@ -255,6 +350,9 @@ export const serverStore = {
             classId: row.class_id || row.classId || 'class-algorithms-2026',
             className: row.class_name || row.className || 'Algorithms & Competitive Programming 2026',
             group: row.group || 'Student',
+            age: row.age ? Number(row.age) : undefined,
+            telegramChatId: row.telegram_chat_id || row.telegramChatId || undefined,
+            telegramUsername: row.telegram_username || row.telegramUsername || undefined,
             active: row.active ?? true,
             createdAt: row.created_at || row.createdAt || new Date().toISOString(),
             updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
@@ -347,6 +445,9 @@ export const serverStore = {
     codeforcesHandle: string;
     classId: string;
     group?: string;
+    age?: number;
+    telegramChatId?: number | string;
+    telegramUsername?: string;
   }): Promise<StudentData> {
     const handle = data.codeforcesHandle.trim();
     const existing = memoryStore.students.find(
@@ -404,6 +505,9 @@ export const serverStore = {
       classId: cls.id,
       className: cls.name,
       group: data.group || 'Student',
+      age: data.age,
+      telegramChatId: data.telegramChatId,
+      telegramUsername: data.telegramUsername,
       active: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -453,23 +557,24 @@ export const serverStore = {
 
     // Persist permanently to Supabase cloud
     try {
-      await supabase.from('students').upsert(
-        {
-          id: newStudent.id,
-          name: newStudent.name,
-          codeforces_handle: newStudent.codeforcesHandle,
-          class_id: newStudent.classId,
-          class_name: newStudent.className,
-          group: newStudent.group,
-          active: newStudent.active,
-          stats: newStudent.stats,
-          submissions: newStudent.submissions || [],
-          contest_participations: newStudent.contestParticipations || [],
-          created_at: newStudent.createdAt,
-          updated_at: newStudent.updatedAt,
-        },
-        { onConflict: 'codeforces_handle' }
-      );
+      const supaPayload: any = {
+        id: newStudent.id,
+        name: newStudent.name,
+        codeforces_handle: newStudent.codeforcesHandle,
+        class_id: newStudent.classId,
+        class_name: newStudent.className,
+        group: newStudent.group,
+        active: newStudent.active,
+        stats: newStudent.stats,
+        submissions: newStudent.submissions || [],
+        contest_participations: newStudent.contestParticipations || [],
+        created_at: newStudent.createdAt,
+        updated_at: newStudent.updatedAt,
+      };
+      if (newStudent.age !== undefined) {
+        supaPayload.age = newStudent.age;
+      }
+      await supabase.from('students').upsert(supaPayload, { onConflict: 'codeforces_handle' });
     } catch (supaErr) {
       console.warn('[Supabase Upsert] Warning:', supaErr);
     }
@@ -511,6 +616,169 @@ export const serverStore = {
     saveStore(memoryStore);
 
     return supabaseDeleted || memoryDeleted;
+  },
+
+  getRegistrationSession(chatId: string | number): RegistrationSession | null {
+    const key = String(chatId);
+    const session = memoryStore.registrationSessions?.[key];
+    if (!session) return null;
+    // Expire session after 30 minutes of inactivity
+    if (Date.now() - session.updatedAt > 30 * 60 * 1000) {
+      if (memoryStore.registrationSessions) {
+        delete memoryStore.registrationSessions[key];
+        saveStore(memoryStore);
+      }
+      return null;
+    }
+    return session;
+  },
+
+  setRegistrationSession(chatId: string | number, session: RegistrationSession): void {
+    if (!memoryStore.registrationSessions) {
+      memoryStore.registrationSessions = {};
+    }
+    memoryStore.registrationSessions[String(chatId)] = {
+      ...session,
+      updatedAt: Date.now(),
+    };
+    saveStore(memoryStore);
+  },
+
+  clearRegistrationSession(chatId: string | number): void {
+    if (memoryStore.registrationSessions?.[String(chatId)]) {
+      delete memoryStore.registrationSessions[String(chatId)];
+      saveStore(memoryStore);
+    }
+  },
+
+  getAssignments(classId?: string): AssignmentWithProgress[] {
+    const assignments = memoryStore.assignments || [];
+    const filtered = classId ? assignments.filter((a) => a.classId === classId) : assignments;
+    const allStudents = memoryStore.students || [];
+
+    return filtered.map((assign) => {
+      const classStudents = allStudents.filter(
+        (s) => s.active && (!assign.classId || s.classId === assign.classId)
+      );
+
+      const studentProgress: StudentAssignmentProgress[] = classStudents.map((st) => {
+        const solvedProblemIds = assign.problems
+          .filter((prob) => {
+            if (!Array.isArray(st.submissions)) return false;
+            return st.submissions.some(
+              (sub: any) =>
+                (sub.problemId === prob.id ||
+                  (Number(sub.contestId) === Number(prob.contestId) &&
+                    String(sub.index).toUpperCase() === String(prob.index).toUpperCase())) &&
+                sub.verdict === 'OK'
+            );
+          })
+          .map((p) => p.id);
+
+        return {
+          studentId: st.id,
+          studentName: st.name,
+          handle: st.codeforcesHandle,
+          avatar: st.stats?.avatar,
+          solvedCount: solvedProblemIds.length,
+          totalCount: assign.problems.length,
+          completed: assign.problems.length > 0 && solvedProblemIds.length === assign.problems.length,
+          solvedProblemIds,
+        };
+      });
+
+      const totalRequired = classStudents.length * assign.problems.length;
+      const totalSolved = studentProgress.reduce((acc, sp) => acc + sp.solvedCount, 0);
+      const completionRate =
+        totalRequired > 0 ? Math.round((totalSolved / totalRequired) * 100) : 0;
+
+      return {
+        ...assign,
+        studentProgress,
+        completionRate,
+      };
+    });
+  },
+
+  async addAssignment(data: {
+    title: string;
+    description?: string;
+    classId: string;
+    problemInput: string;
+    dueDate?: string;
+  }): Promise<AssignmentWithProgress> {
+    if (!memoryStore.assignments) {
+      memoryStore.assignments = [...DEFAULT_ASSIGNMENTS];
+    }
+
+    const classroom = memoryStore.classes.find((c) => c.id === data.classId);
+    const className = classroom?.name || 'All Students';
+
+    const rawTokens = data.problemInput
+      .split(/[\n,\s]+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const problems: AssignmentProblem[] = [];
+
+    for (const token of rawTokens) {
+      const urlMatch = token.match(/codeforces\.com\/(?:problemset\/problem|contest)\/(\d+)\/(?:problem\/)?([a-zA-Z0-9]+)/i);
+      let contestId = 0;
+      let index = '';
+
+      if (urlMatch) {
+        contestId = parseInt(urlMatch[1], 10);
+        index = urlMatch[2].toUpperCase();
+      } else {
+        const tokenMatch = token.match(/^(\d+)([a-zA-Z0-9]+)$/);
+        if (tokenMatch) {
+          contestId = parseInt(tokenMatch[1], 10);
+          index = tokenMatch[2].toUpperCase();
+        }
+      }
+
+      if (contestId && index) {
+        const probId = `${contestId}${index}`;
+        if (!problems.some((p) => p.id === probId)) {
+          problems.push({
+            id: probId,
+            contestId,
+            index,
+            name: `Problem ${contestId}${index}`,
+            url: `https://codeforces.com/problemset/problem/${contestId}/${index}`,
+          });
+        }
+      }
+    }
+
+    const newAssignment: Assignment = {
+      id: `assign-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title: data.title.trim(),
+      description: data.description?.trim(),
+      classId: data.classId,
+      className,
+      problems,
+      dueDate: data.dueDate || new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    memoryStore.assignments.unshift(newAssignment);
+    saveStore(memoryStore);
+
+    const [withProgress] = serverStore.getAssignments().filter((a) => a.id === newAssignment.id);
+    return withProgress || { ...newAssignment, studentProgress: [], completionRate: 0 };
+  },
+
+  deleteAssignment(id: string): boolean {
+    if (!memoryStore.assignments) return false;
+    const initialLen = memoryStore.assignments.length;
+    memoryStore.assignments = memoryStore.assignments.filter((a) => a.id !== id);
+    if (memoryStore.assignments.length !== initialLen) {
+      saveStore(memoryStore);
+      return true;
+    }
+    return false;
   },
 
   async syncStudent(id: string): Promise<StudentData | null> {

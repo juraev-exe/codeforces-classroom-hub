@@ -25,6 +25,9 @@ import { fetchApi } from '@/lib/api';
 import { getRankColor, getRankBadgeClass } from '@/lib/cf-utils';
 import type { LeaderboardEntry, Classroom } from '@cf-hub/types';
 
+const DEFAULT_AVATAR =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' width='40' height='40'><rect width='40' height='40' rx='12' fill='%231e293b'/><circle cx='20' cy='15' r='6' fill='%2364748b'/><path d='M10 32c0-5 4.5-8 10-8s10 3 10 8' fill='%2364748b'/></svg>";
+
 function LeaderboardContent() {
   const searchParams = useSearchParams();
   const initialClassId = searchParams.get('classId') || '';
@@ -109,7 +112,12 @@ function LeaderboardContent() {
               <Award className="w-3.5 h-3.5 text-slate-300" /> 2nd
             </div>
             <img
-              src={top3[1].avatar ? (top3[1].avatar.startsWith('//') ? `https:${top3[1].avatar}` : top3[1].avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
+              src={top3[1].avatar ? (top3[1].avatar.startsWith('//') ? `https:${top3[1].avatar}` : top3[1].avatar) : DEFAULT_AVATAR}
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                (e.target as HTMLImageElement).onerror = null;
+                (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+              }}
               alt={top3[1].handle}
               className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-400/30 bg-black/40 shadow-lg mt-4"
             />
@@ -144,7 +152,12 @@ function LeaderboardContent() {
               <Crown className="w-3.5 h-3.5 text-amber-400" /> 1st Champion
             </div>
             <img
-              src={top3[0].avatar ? (top3[0].avatar.startsWith('//') ? `https:${top3[0].avatar}` : top3[0].avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
+              src={top3[0].avatar ? (top3[0].avatar.startsWith('//') ? `https:${top3[0].avatar}` : top3[0].avatar) : DEFAULT_AVATAR}
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                (e.target as HTMLImageElement).onerror = null;
+                (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+              }}
               alt={top3[0].handle}
               className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-400/50 bg-black/40 shadow-xl shadow-amber-500/20 mt-4 ring-4 ring-amber-400/10"
             />
@@ -179,7 +192,12 @@ function LeaderboardContent() {
               <Medal className="w-3.5 h-3.5 text-amber-600" /> 3rd
             </div>
             <img
-              src={top3[2].avatar ? (top3[2].avatar.startsWith('//') ? `https:${top3[2].avatar}` : top3[2].avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
+              src={top3[2].avatar ? (top3[2].avatar.startsWith('//') ? `https:${top3[2].avatar}` : top3[2].avatar) : DEFAULT_AVATAR}
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                (e.target as HTMLImageElement).onerror = null;
+                (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+              }}
               alt={top3[2].handle}
               className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-700/40 bg-black/40 shadow-lg mt-4"
             />
@@ -293,7 +311,12 @@ function LeaderboardContent() {
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
                         <img
-                          src={item.avatar ? (item.avatar.startsWith('//') ? `https:${item.avatar}` : item.avatar) : 'https://userpic.codeforces.org/no-avatar.jpg'} onError={(e) => { (e.target as HTMLImageElement).onerror = null; (e.target as HTMLImageElement).src = 'https://userpic.codeforces.org/no-avatar.jpg'; }}
+                          src={item.avatar ? (item.avatar.startsWith('//') ? `https:${item.avatar}` : item.avatar) : DEFAULT_AVATAR}
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).onerror = null;
+                            (e.target as HTMLImageElement).src = DEFAULT_AVATAR;
+                          }}
                           alt={item.handle}
                           className="w-10 h-10 rounded-2xl object-cover border border-white/10 bg-black/40 shadow-sm"
                         />

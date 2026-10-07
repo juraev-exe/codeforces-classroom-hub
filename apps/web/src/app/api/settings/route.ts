@@ -8,6 +8,11 @@ function publicSettings(settings: AppSettings) {
   const { telegramBotToken, cfApiKey, cfApiSecret, ...safeSettings } = settings;
   return {
     ...safeSettings,
+    telegramBotToken: telegramBotToken
+      ? `${telegramBotToken.slice(0, 4)}••••••••${telegramBotToken.slice(-4)}`
+      : '',
+    cfApiKey: cfApiKey || '',
+    cfApiSecret: cfApiSecret ? '••••••••••••••••' : '',
     telegramBotTokenConfigured: Boolean(telegramBotToken),
     cfApiKeyConfigured: Boolean(cfApiKey),
     cfApiSecretConfigured: Boolean(cfApiSecret),
@@ -24,9 +29,9 @@ export async function GET(req: Request) {
   if (authError) return authError;
 
   try {
-    const settings = serverStore.getSettings();
+    const rawSettings = serverStore.getSettings();
     return NextResponse.json({
-      settings: publicSettings(settings),
+      settings: publicSettings(rawSettings),
       health: publicHealth(),
     });
   } catch (err: any) {
@@ -45,6 +50,15 @@ export async function POST(req: Request) {
     }
 
     const updates = { ...body };
+
+    // If masked placeholder was sent back, preserve existing stored secrets
+    if (updates.telegramBotToken && updates.telegramBotToken.includes('••••')) {
+      delete updates.telegramBotToken;
+    }
+    if (updates.cfApiSecret && updates.cfApiSecret.includes('••••')) {
+      delete updates.cfApiSecret;
+    }
+
     for (const key of ['telegramBotToken', 'cfApiKey', 'cfApiSecret']) {
       if (typeof updates[key] !== 'string' || !updates[key].trim()) {
         delete updates[key];

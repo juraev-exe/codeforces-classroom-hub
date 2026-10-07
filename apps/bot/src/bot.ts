@@ -84,40 +84,58 @@ async function apiPost<T>(endpoint: string, body: any): Promise<T> {
 
 bot.start((ctx) => {
   ctx.reply(
-    `👋 *Welcome to Codeforces Classroom Hub Bot!*\n` +
-      `_Managed by Abubakr Juraev (@AbubakrJ)_\n\n` +
-      `Students can join the classroom instantly:\n` +
-      `• \`/join <cf_handle> [Full Name]\` - Enroll in classroom\n` +
-      `• \`/link\` - Get the 1-click web join link\n\n` +
-      `Classroom & Stats Commands:\n` +
-      `• \`/my\` - View teacher profile & stats\n` +
-      `• \`/class\` - View classroom statistics\n` +
+    `👋 *Welcome to Codeforces Classroom Hub Bot!* 🚀\n` +
+      `_Mentored by Coach Abubakr Juraev (@AbubakrJ)_\n\n` +
+      `🌐 *Production Platform:* ${webUrl}\n\n` +
+      `*How to enroll in the classroom:*\n` +
+      `• \`/join <cf_handle_or_link> [Full Name] [Age]\`\n` +
+      `  _Example:_ \`/join tourist Gennady Korotkevich 29\`\n` +
+      `  _Or with URL:_ \`/join https://codeforces.com/profile/tourist\`\n` +
+      `• \`/link\` - Get the 1-click web invite link\n\n` +
+      `Commands:\n` +
+      `• \`/leaderboard\` - View classroom standings\n` +
+      `• \`/next\` - Nearest contest countdown\n` +
+      `• \`/contests\` - Upcoming Codeforces rounds\n` +
       `• \`/students\` - View enrolled students\n` +
-      `• \`/leaderboard\` - View current classroom rankings\n` +
-      `• \`/contests\` - View upcoming Codeforces rounds\n` +
-      `• \`/next\` - Next contest countdown\n` +
-      `• \`/rating <handle>\` - Check user Codeforces rating\n` +
-      `• \`/problems <handle>\` - View solved problems breakdown\n` +
-      `• \`/help\` - Show this help menu\n\n` +
-      `🌐 [Open Classroom Dashboard](${webUrl})`,
-    { parse_mode: 'Markdown' }
+      `• \`/class\` - Classroom statistics & averages\n` +
+      `• \`/my\` - Coach Abubakr profile\n` +
+      `• \`/rating <handle>\` - Live rating lookup\n` +
+      `• \`/problems <handle>\` - Solved problems count\n\n` +
+      `🌐 [Open Classroom Platform](${webUrl})`,
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '🏆 Leaderboard', callback_data: 'cb_leaderboard' },
+            { text: '⚡ Next Contest', callback_data: 'cb_next' },
+          ],
+          [
+            { text: '👥 Students Roster', callback_data: 'cb_students' },
+            { text: '🌐 Open Production Hub ↗️', url: webUrl },
+          ],
+        ],
+      },
+    }
   );
 });
 
 bot.help((ctx) => {
   ctx.reply(
     `📚 *Codeforces Classroom Hub Guide*\n\n` +
-      `• \`/join <handle> [name]\` : Enroll directly in the classroom\n` +
-      `• \`/link\` : Shareable student join invite URL\n` +
-      `• \`/my\` : Teacher Abubakr Juraev profile & live stats\n` +
-      `• \`/class\` : Class overview (avg rating, total solved, students)\n` +
-      `• \`/students\` : Roster of enrolled students and their ratings\n` +
-      `• \`/leaderboard\` : Top ranked students in the classroom\n` +
+      `• \`/join <handle|link> [name] [age]\` : Enroll in classroom with details\n` +
+      `• \`/add <handle|link> [name] [age]\` : Teacher shortcut to enroll student\n` +
+      `• \`/homework\` : Active problem sets & assignments\n` +
+      `• \`/link\` : Shareable student web invite URL\n` +
+      `• \`/leaderboard\` : Current classroom standings\n` +
+      `• \`/next\` : Countdown to nearest contest\n` +
       `• \`/contests\` : Upcoming official Codeforces rounds\n` +
-      `• \`/next\` : Countdown to the nearest upcoming round\n` +
+      `• \`/students\` : Roster of enrolled students and ratings\n` +
+      `• \`/class\` : Class overview (avg rating, total solved)\n` +
+      `• \`/my\` : Coach profile & live statistics\n` +
       `• \`/rating <handle>\` : Real-time rating check for any CF handle\n` +
       `• \`/problems <handle>\` : Solved count and activity breakdown\n\n` +
-      `🌐 Dashboard: ${webUrl}`,
+      `🌐 *Production Platform:* ${webUrl}`,
     { parse_mode: 'Markdown' }
   );
 });
@@ -128,31 +146,55 @@ bot.command('link', (ctx) => {
       `Share this link with your students to automatically join the classroom:\n` +
       `👉 \`${webUrl}/join\`\n\n` +
       `Or students can message this bot (@CodeForcesStudents_Bot):\n` +
-      `\`/join <handle> [Full Name]\`\n\n` +
+      `\`/join <handle_or_link> [Full Name] [Age]\`\n\n` +
       `_No passwords or login required!_`,
     { parse_mode: 'Markdown' }
   );
 });
 
-bot.command('join', async (ctx) => {
+async function handleEnrollmentCommand(ctx: any) {
   const text = ctx.message.text.trim();
   const parts = text.split(/\s+/).slice(1);
 
   if (parts.length === 0) {
     return ctx.reply(
-      `ℹ️ *How to join the classroom:*\n\n` +
-        `Send: \`/join <CF_Handle> [Your Full Name]\`\n\n` +
+      `ℹ️ *How to enroll in the classroom:*\n\n` +
+        `Send: \`/join <CF_Handle_Or_Link> [Your Full Name] [Age]\`\n\n` +
         `*Examples:*\n` +
-        `• \`/join tourist Gennady Korotkevich\`\n` +
+        `• \`/join tourist Gennady Korotkevich 29\`\n` +
+        `• \`/join https://codeforces.com/profile/tourist Gennady Korotkevich 29\`\n` +
         `• \`/join Petr Petr Mitrichev\`\n\n` +
-        `Or use the 1-click web join page:\n` +
+        `Or use the 1-click web portal:\n` +
         `🔗 ${webUrl}/join`,
       { parse_mode: 'Markdown' }
     );
   }
 
-  const rawHandle = parts[0].replace(/^@/, '');
-  const name = parts.slice(1).join(' ') || rawHandle;
+  let handleCandidate = parts[0];
+  let remainingParts = parts.slice(1);
+
+  // Extract handle if profile URL was provided
+  const urlMatch = text.match(/codeforces\.com\/profile\/([a-zA-Z0-9_\-\.]+)/i);
+  if (urlMatch) {
+    handleCandidate = urlMatch[1];
+    remainingParts = parts.filter((p: string) => !p.includes('codeforces.com/profile/'));
+  }
+
+  // Check if last argument is an age number
+  let age: number | undefined = undefined;
+  if (remainingParts.length > 0) {
+    const lastPart = remainingParts[remainingParts.length - 1];
+    if (/^\d{1,3}$/.test(lastPart)) {
+      const parsedAge = parseInt(lastPart, 10);
+      if (parsedAge >= 5 && parsedAge <= 120) {
+        age = parsedAge;
+        remainingParts = remainingParts.slice(0, -1);
+      }
+    }
+  }
+
+  const rawHandle = handleCandidate.replace(/^@/, '').trim();
+  const name = remainingParts.join(' ') || rawHandle;
 
   try {
     // 1. Check if user already exists
@@ -194,6 +236,7 @@ bot.command('join', async (ctx) => {
       codeforcesHandle: rawHandle,
       classId: targetClass.id,
       group: 'Standard',
+      age,
     });
 
     // 4. Sync immediately
@@ -210,21 +253,60 @@ bot.command('join', async (ctx) => {
     const rank = stats?.rank || 'unrated';
     const maxRating = stats?.maxRating || 'N/A';
     const solved = stats?.solvedCount || 0;
+    const ageStr = updated.age ? ` (${updated.age} y/o)` : '';
 
     await ctx.reply(
       `🎉 *Successfully Enrolled in Classroom Hub!*\n\n` +
-        `👤 *Name:* ${updated.name}\n` +
+        `👤 *Name:* ${updated.name}${ageStr}\n` +
         `🎯 *Codeforces Handle:* @${updated.codeforcesHandle}\n` +
         `⭐ *Rating:* ${rating} (${rank})\n` +
         `🏆 *Max Rating:* ${maxRating}\n` +
         `✅ *Problems Solved:* ${solved}\n` +
         `🏫 *Classroom:* ${targetClass.name}\n\n` +
-        `Your daily solves and contest performances are now actively tracked!\n` +
+        `Your daily solves and contest performances are now actively tracked!\n\n` +
+        `🌐 *Production Profile:* ${webUrl}/students/${updated.id}\n` +
         `🏆 [View Leaderboard](${webUrl}/leaderboard)`,
       { parse_mode: 'Markdown' }
     );
   } catch (err: any) {
     await ctx.reply(`❌ Enrollment error: ${err.message}`);
+  }
+}
+
+bot.command('join', handleEnrollmentCommand);
+bot.command('add', handleEnrollmentCommand);
+bot.command('register', handleEnrollmentCommand);
+
+bot.command(['homework', 'assignments', 'assignment', 'ps'], async (ctx) => {
+  try {
+    const assignments = await apiGet<any[]>('/api/assignments');
+    if (!assignments || assignments.length === 0) {
+      await ctx.reply(`ℹ️ No active problem sets assigned yet.\n\n🌐 View Hub: ${webUrl}/assignments`);
+      return;
+    }
+
+    let msg = `📚 *Classroom Problem Sets & Homework*\n\n`;
+    assignments.slice(0, 3).forEach((a, idx) => {
+      const daysLeft = Math.ceil((new Date(a.dueDate).getTime() - Date.now()) / (1000 * 3600 * 24));
+      const dueText = daysLeft < 0 ? '⚠️ Past Due' : `⏰ ${daysLeft}d left`;
+      const probList = a.problems.map((p: any) => `• [${p.id} - ${p.name}](${p.url})`).join('\n');
+      msg += `*${idx + 1}. ${a.title}* (${dueText})\n📊 Progress: *${a.completionRate}%*\n${probList}\n\n`;
+    });
+    msg += `🌐 [Open Problem Sets Manager](${webUrl}/assignments)`;
+
+    await ctx.reply(msg, {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '📚 View Problem Sets', url: `${webUrl}/assignments` },
+            { text: '🏆 Leaderboard', url: `${webUrl}/leaderboard` },
+          ],
+        ],
+      },
+    });
+  } catch (err: any) {
+    await ctx.reply(`❌ Error fetching assignments: ${err.message}`);
   }
 });
 

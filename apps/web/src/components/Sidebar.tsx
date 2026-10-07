@@ -18,6 +18,8 @@ import {
   Radio,
   Zap,
   Settings,
+  BookOpen,
+  Sparkles,
 } from 'lucide-react';
 
 interface NavItem {
@@ -46,6 +48,7 @@ const navGroups: NavGroup[] = [
   {
     title: 'TRAINING & COMPETITION',
     items: [
+      { href: '/assignments', label: 'Problem Sets', icon: BookOpen, badge: 'New', badgeColor: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
       { href: '/contests', label: 'Contests', icon: Calendar, badge: '4' },
       { href: '/analytics', label: 'AI Analytics', icon: BarChart3 },
     ],
@@ -54,6 +57,7 @@ const navGroups: NavGroup[] = [
     title: 'SYSTEM & TOOLS',
     items: [
       { href: '/join', label: 'Student Join', icon: Link2 },
+      { href: '/showcase', label: 'Product Tour', icon: Sparkles, badge: 'SaaS', badgeColor: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
       { href: '/telegram', label: 'Telegram Bot', icon: Bot, badge: 'Live', badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
       { href: '/settings', label: 'Settings', icon: Settings },
     ],
@@ -63,6 +67,7 @@ const navGroups: NavGroup[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   const renderNavContent = () => (
     <div className="flex flex-col h-full">
@@ -144,52 +149,66 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom Teacher Profile Card */}
-      <div className="p-3.5 border-t border-white/[0.08] shrink-0 bg-white/[0.01]">
-        <div className="flex items-center justify-between p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="relative shrink-0">
-              <img
-                src="https://userpic.codeforces.org/1970880/title/66afacde68a45195.jpg"
-                alt="Abubakr Juraev"
-                className="w-8 h-8 rounded-xl object-cover border border-white/10"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).onerror = null;
-                  (e.target as HTMLImageElement).src =
-                    'https://userpic.codeforces.org/no-avatar.jpg';
-                }}
-              />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#090b10]"></span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <span className="text-xs font-semibold text-zinc-100 truncate block">
-                Abubakr Juraev
-              </span>
-              <div className="flex items-center gap-1.5 text-[10px] font-mono">
-                <span className="text-zinc-400">CF: 693</span>
-                <span className="text-zinc-600">&bull;</span>
-                <span className="text-amber-400 font-semibold">ACMP: 984</span>
+      <div className="p-3 border-t border-white/[0.08] shrink-0 bg-white/[0.01]">
+        <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] transition-all space-y-2">
+          {/* Header with Avatar and Name */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative shrink-0">
+                {avatarError ? (
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 border border-white/20 flex items-center justify-center font-bold text-xs text-white shadow-md">
+                    AJ
+                  </div>
+                ) : (
+                  <img
+                    src="https://userpic.codeforces.org/1970880/title/66afacde68a45195.jpg"
+                    referrerPolicy="no-referrer"
+                    alt=""
+                    className="w-8 h-8 rounded-xl object-cover border border-white/10"
+                    onError={() => setAvatarError(true)}
+                  />
+                )}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#090b10]" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-semibold text-zinc-100 truncate block">
+                  Abubakr Juraev
+                </span>
+                <span className="text-[10px] text-zinc-400 block -mt-0.5 font-medium">
+                  Coach & Lead
+                </span>
               </div>
             </div>
+
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold tracking-wide shrink-0">
+              Online
+            </span>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          {/* Stats & Quick Profile Badges */}
+          <div className="flex items-center gap-1.5 pt-1 border-t border-white/[0.04]">
             <a
               href="https://codeforces.com/profile/AbubakrJ"
               target="_blank"
               rel="noreferrer"
-              title="Codeforces Profile"
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-white/[0.08] transition"
+              title="Codeforces Profile (@AbubakrJ)"
+              className="flex-1 flex items-center justify-between px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-[10px] font-mono transition text-blue-300 group"
             >
-              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="text-zinc-400 font-sans font-medium text-[9px]">CF</span>
+              <span className="font-bold text-white group-hover:text-blue-200">693</span>
+              <ExternalLink className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100" />
             </a>
+
             <a
               href="https://acmp.ru/index.asp?main=user&id=515125"
               target="_blank"
               rel="noreferrer"
               title="ACMP.ru Profile (#515125)"
-              className="p-1.5 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-white/[0.08] transition text-[11px] font-bold font-mono"
+              className="flex-1 flex items-center justify-between px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-[10px] font-mono transition text-amber-300 group"
             >
-              A
+              <span className="text-zinc-400 font-sans font-medium text-[9px]">ACMP</span>
+              <span className="font-bold text-white group-hover:text-amber-200">984</span>
+              <ExternalLink className="w-2.5 h-2.5 opacity-60 group-hover:opacity-100" />
             </a>
           </div>
         </div>

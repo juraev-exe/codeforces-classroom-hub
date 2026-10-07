@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
-import { serverStore, fetchCF } from '@/lib/server-store';
+import { serverStore, fetchCF, type RegistrationSession } from '@/lib/server-store';
 
 export const dynamic = 'force-dynamic';
 
 function getBotToken(): string {
-  return process.env.TELEGRAM_BOT_TOKEN || serverStore.getSettings().telegramBotToken || '';
+  try {
+    const s = serverStore.getSettings();
+    if (s.telegramBotToken) return s.telegramBotToken;
+  } catch {}
+  return process.env.TELEGRAM_BOT_TOKEN || '';
 }
 
 const WEB_URL = (process.env.WEB_URL || 'https://codeforces-classroom-hub.vercel.app').replace(/\/+$/, '');
@@ -260,20 +264,173 @@ async function sendPotdMsg(chatId: number | string) {
   });
 }
 
-async function sendJoinGuideMsg(chatId: number | string) {
+async function startRegistration(chatId: number | string, candidateName?: string) {
+  serverStore.setRegistrationSession(chatId, {
+    step: 'waiting_name',
+    name: candidateName && candidateName !== 'Coder' ? candidateName : undefined,
+    updatedAt: Date.now(),
+  });
+
   const msg =
-    `➕ *How to Enroll in Codeforces Classroom Hub*\n\n` +
-    `You can enroll in 2 simple ways:\n\n` +
-    `*Option 1: In this Chat*\n` +
-    `Send: \`/join <cf_handle> [Full Name]\`\n` +
-    `_Example:_ \`/join tourist Gennady Korotkevich\`\n\n` +
-    `*Option 2: 1-Click Web Invite*\n` +
-    `Open: \`${WEB_URL}/join\`\n\n` +
-    `Once enrolled, your Codeforces submissions, rating milestones, and contest performance will automatically appear in Coach Abubakr's classroom analytics! 🌟`;
+    `📝 *Student Registration - Step 1 of 3: Full Name*\n\n` +
+    `Welcome! Let's enroll you in Coach Abubakr's Algorithms classroom.\n\n` +
+    `🌐 *Production Platform:* ${WEB_URL}\n\n` +
+    `👤 *Please reply with your First & Last Name:*\n` +
+    `_Example: \`Sardor Umarov\` or \`Gennady Korotkevich\`_\n\n` +
+    `_(Send /cancel at any time to abort)_`;
 
   await sendTelegramMessage(chatId, msg, {
     reply_markup: {
       inline_keyboard: [
+        [{ text: '❌ Cancel Registration', callback_data: 'cb_reg_cancel' }],
+        [{ text: '🌐 1-Click Web Join Portal ↗️', url: `${WEB_URL}/join` }],
+      ],
+    },
+  });
+}
+
+async function sendConfirmationCard(chatId: number | string, session: RegistrationSession) {
+  const u = session.cfUser || {};
+  const rating = u.rating !== undefined ? u.rating : 0;
+  const rank = u.rank || 'unrated';
+  const maxRating = u.maxRating !== undefined ? u.maxRating : 'N/A';
+  const solved = session.solvedCount || 0;
+  const ageText = session.age ? `${session.age} years old` : 'Not specified';
+
+  const classes = serverStore.getClassrooms();
+  const targetClass = classes[0];
+
+  const msg =
+    `📋 *Classroom Enrollment Confirmation*\n\n` +
+    `Please review your details before final registration:\n\n` +
+    `👤 *Full Name:* ${session.name}\n` +
+    `🎯 *Codeforces Nick:* @${session.codeforcesHandle}\n` +
+    `🎂 *Age:* ${ageText}\n` +
+    `⭐ *Live Rating:* *${rating}* (${rank})\n` +
+    `🏆 *Peak Rating:* *${maxRating}*\n` +
+    `✅ *Problems Solved:* *${solved}*\n` +
+    `🏫 *Classroom:* ${targetClass?.name || 'Algorithms & Competitive Programming 2026'}\n\n` +
+    `🌐 *Production Platform:* ${WEB_URL}\n\n` +
+    `Tap *Confirm & Enroll* below to finalize your registration:`;
+
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '✅ Confirm & Enroll', callback_data: 'cb_reg_confirm' },
+          { text: '✏️ Edit / Start Over', callback_data: 'cb_reg_restart' },
+        ],
+        [{ text: '❌ Cancel', callback_data: 'cb_reg_cancel' }],
+      ],
+    },
+  });
+}
+
+async function finalizeRegistration(chatId: number | string, fromUsername?: string) {
+  const session = serverStore.getRegistrationSession(chatId);
+  if (!session || !session.name || !session.codeforcesHandle) {
+    await sendTelegramMessage(
+      chatId,
+      `⚠️ No pending registration found. Tap below or send \`/join\` to start:`,
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📝 Start Registration', callback_data: 'cb_register_start' }],
+          ],
+        },
+      }
+    );
+    return;
+  }
+
+  // Double check if already enrolled
+  const existingStudents = serverStore.getStudents();
+  const already = existingStudents.find(
+    (s) => s.codeforcesHandle.toLowerCase() === session.codeforcesHandle!.toLowerCase()
+  );
+  if (already) {
+    serverStore.clearRegistrationSession(chatId);
+    await sendTelegramMessage(
+      chatId,
+      `ℹ️ *@${session.codeforcesHandle}* (${already.name}) is already enrolled!\n\n` +
+      `🔗 [View Student Profile](${WEB_URL}/students/${already.id})`
+    );
+    return;
+  }
+
+  const classes = serverStore.getClassrooms();
+  const targetClass = classes[0];
+
+  try {
+    const newStudent = await serverStore.addStudent({
+      name: session.name,
+      codeforcesHandle: session.codeforcesHandle,
+      classId: targetClass.id,
+      group: 'Standard',
+      age: session.age,
+      telegramChatId: chatId,
+      telegramUsername: fromUsername,
+    });
+
+    serverStore.clearRegistrationSession(chatId);
+
+    const stats = newStudent.stats;
+    const rating = stats?.rating || 0;
+    const rank = stats?.rank || 'unrated';
+    const solved = stats?.solvedCount || 0;
+    const ageStr = newStudent.age ? ` | Age: ${newStudent.age}` : '';
+
+    const successMsg =
+      `🎉 *Congratulations, ${newStudent.name}!* 🚀\n\n` +
+      `You are officially enrolled in *${targetClass.name}*!\n\n` +
+      `👤 *Student:* ${newStudent.name}${ageStr}\n` +
+      `🎯 *Codeforces Handle:* @${newStudent.codeforcesHandle}\n` +
+      `⭐ *Rating:* *${rating}* (${rank})\n` +
+      `✅ *Problems Solved:* *${solved}*\n\n` +
+      `Your contest solutions, rating changes, and telemetry are now synced live!\n\n` +
+      `🌐 *Production Profile:* ${WEB_URL}/students/${newStudent.id}\n` +
+      `🏆 *Classroom Leaderboard:* ${WEB_URL}/leaderboard\n` +
+      `💻 *Platform Dashboard:* ${WEB_URL}`;
+
+    await sendTelegramMessage(chatId, successMsg, {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '👤 My Profile & Stats ↗️', url: `${WEB_URL}/students/${newStudent.id}` },
+            { text: '🏆 Live Leaderboard', callback_data: 'cb_leaderboard' },
+          ],
+          [
+            { text: '⚡ Next Contest', callback_data: 'cb_next' },
+            { text: '💡 Problem of the Day', callback_data: 'cb_potd' },
+          ],
+          [{ text: '🌐 Open Production Hub ↗️', url: `${WEB_URL}` }],
+        ],
+      },
+    });
+  } catch (err: any) {
+    await sendTelegramMessage(chatId, `❌ Failed to enroll: ${err.message}`);
+  }
+}
+
+async function sendJoinGuideMsg(chatId: number | string) {
+  const msg =
+    `➕ *How to Enroll in Codeforces Classroom Hub*\n\n` +
+    `🌐 *Production Platform:* ${WEB_URL}\n\n` +
+    `Choose any of these easy ways to enroll:\n\n` +
+    `*Option 1: Guided Chat Registration (Recommended)*\n` +
+    `Tap the *📝 Register Student* button below to provide Name, Codeforces nick/link, and Age.\n\n` +
+    `*Option 2: 1-Line Command with Age*\n` +
+    `Send: \`/join <nick_or_link> [Full Name] [Age]\`\n` +
+    `_Example:_ \`/join tourist Gennady Korotkevich 29\`\n` +
+    `_Or simply:_ \`/join https://codeforces.com/profile/tourist\`\n\n` +
+    `*Option 3: 1-Click Web Join Portal*\n` +
+    `Visit: \`${WEB_URL}/join\`\n\n` +
+    `Once enrolled, your Codeforces submissions, rating trajectory, and contest performance appear live on Coach Abubakr's leaderboard! 🌟`;
+
+  await sendTelegramMessage(chatId, msg, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📝 Start Registration Now', callback_data: 'cb_register_start' }],
         [{ text: '🌐 Open Web Join Portal ↗️', url: `${WEB_URL}/join` }],
         [{ text: '🏆 View Leaderboard', callback_data: 'cb_leaderboard' }],
       ],
@@ -448,6 +605,14 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const incomingSecret = req.headers.get('x-telegram-bot-api-secret-token');
+      if (incomingSecret !== webhookSecret) {
+        return NextResponse.json({ error: 'Unauthorized webhook request' }, { status: 401 });
+      }
+    }
+
     const update = await req.json();
 
     // Sync state from Supabase cloud database
@@ -462,7 +627,29 @@ export async function POST(req: Request) {
 
       await answerCallbackQuery(callbackId);
 
-      if (data === 'cb_leaderboard') {
+      if (data === 'cb_register_start') {
+        const callerName = cb.from?.first_name || 'Coder';
+        await startRegistration(chatId, callerName);
+      } else if (data === 'cb_reg_confirm') {
+        await finalizeRegistration(chatId, cb.from?.username);
+      } else if (data === 'cb_reg_restart') {
+        const callerName = cb.from?.first_name || 'Coder';
+        await startRegistration(chatId, callerName);
+      } else if (data === 'cb_reg_cancel') {
+        serverStore.clearRegistrationSession(chatId);
+        await sendTelegramMessage(
+          chatId,
+          `❌ Registration canceled.\n\nSend \`/start\` at any time to return to the menu.\n🌐 [Platform Dashboard](${WEB_URL})`
+        );
+      } else if (data === 'cb_reg_skip_age') {
+        const session = serverStore.getRegistrationSession(chatId);
+        if (session) {
+          session.age = undefined;
+          session.step = 'waiting_confirmation';
+          serverStore.setRegistrationSession(chatId, session);
+          await sendConfirmationCard(chatId, session);
+        }
+      } else if (data === 'cb_leaderboard') {
         await sendLeaderboardMsg(chatId);
       } else if (data === 'cb_next') {
         await sendNextContestMsg(chatId);
@@ -532,6 +719,177 @@ export async function POST(req: Request) {
         (s.name && s.name.toLowerCase().includes(firstName.toLowerCase()))
     );
 
+    // 1. Cancel Active Registration
+    if (command === '/cancel') {
+      serverStore.clearRegistrationSession(chatId);
+      await sendTelegramMessage(
+        chatId,
+        `❌ Action canceled.\n\nSend \`/start\` to return to the main menu.\n🌐 [Production Classroom Platform](${WEB_URL})`
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    // 2. Skip Age During Registration
+    if (command === '/skip') {
+      const sess = serverStore.getRegistrationSession(chatId);
+      if (sess && sess.step === 'waiting_age') {
+        sess.age = undefined;
+        sess.step = 'waiting_confirmation';
+        serverStore.setRegistrationSession(chatId, sess);
+        await sendConfirmationCard(chatId, sess);
+        return NextResponse.json({ ok: true });
+      }
+    }
+
+    // 3. Interactive Multi-Step Registration Session Handler
+    const activeSession = serverStore.getRegistrationSession(chatId);
+    if (activeSession && !text.startsWith('/')) {
+      if (activeSession.step === 'waiting_name') {
+        const inputName = text.trim();
+        if (inputName.length < 2) {
+          await sendTelegramMessage(chatId, '⚠️ Please provide a valid full name (at least 2 letters):');
+          return NextResponse.json({ ok: true });
+        }
+        activeSession.name = inputName;
+        activeSession.step = 'waiting_handle_or_link';
+        serverStore.setRegistrationSession(chatId, activeSession);
+
+        const promptMsg =
+          `🎯 *Codeforces Nickname or Profile Link (Step 2 of 3)*\n\n` +
+          `Nice to meet you, *${activeSession.name}*!\n\n` +
+          `Please reply with your Codeforces handle or profile link:\n` +
+          `• *Handle:* e.g. \`tourist\` or \`Benq\`\n` +
+          `• *Profile URL:* e.g. \`https://codeforces.com/profile/tourist\`\n\n` +
+          `_We will verify your rating and profile live on Codeforces._`;
+
+        await sendTelegramMessage(chatId, promptMsg, {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '❌ Cancel Registration', callback_data: 'cb_reg_cancel' }],
+            ],
+          },
+        });
+        return NextResponse.json({ ok: true });
+      }
+
+      if (activeSession.step === 'waiting_handle_or_link') {
+        let handleCandidate = text.trim();
+        const urlMatch = handleCandidate.match(/codeforces\.com\/profile\/([a-zA-Z0-9_\-\.]+)/i);
+        if (urlMatch) {
+          handleCandidate = urlMatch[1];
+        }
+        const rawHandle = handleCandidate.replace(/^@/, '').trim();
+
+        if (!rawHandle) {
+          await sendTelegramMessage(chatId, '⚠️ Please send a valid Codeforces handle or profile link:');
+          return NextResponse.json({ ok: true });
+        }
+
+        const already = students.find((s) => s.codeforcesHandle.toLowerCase() === rawHandle.toLowerCase());
+        if (already) {
+          serverStore.clearRegistrationSession(chatId);
+          await sendTelegramMessage(
+            chatId,
+            `ℹ️ Codeforces handle *@${rawHandle}* (${already.name}) is already enrolled!\n\n` +
+            `⭐ Rating: *${already.stats?.rating || 'Unrated'}* (${already.stats?.rank || 'unrated'})\n` +
+            `✅ Solved: *${already.stats?.solvedCount || 0}* problems\n\n` +
+            `🔗 [View Student Profile](${WEB_URL}/students/${already.id})`
+          );
+          return NextResponse.json({ ok: true });
+        }
+
+        await sendTelegramMessage(chatId, `⏳ Verifying handle \`@${rawHandle}\` live on Codeforces...`);
+
+        try {
+          const users = await fetchCF<any[]>('user.info', { handles: rawHandle });
+          if (!users || users.length === 0) {
+            await sendTelegramMessage(
+              chatId,
+              `❌ Codeforces user \`@${rawHandle}\` was not found on Codeforces.\n\nPlease check spelling and send your handle or profile link again (e.g. \`tourist\` or \`https://codeforces.com/profile/tourist\`):`
+            );
+            return NextResponse.json({ ok: true });
+          }
+
+          const u = users[0];
+          activeSession.codeforcesHandle = u.handle;
+          activeSession.cfUser = u;
+
+          // Fetch solved count
+          try {
+            const subs = await fetchCF<any[]>('user.status', { handle: u.handle, from: '1', count: '1000' });
+            const solvedSet = new Set<string>();
+            subs.forEach((s: any) => {
+              if (s.verdict === 'OK' && s.problem) {
+                solvedSet.add(`${s.problem.contestId}-${s.problem.index}`);
+              }
+            });
+            activeSession.solvedCount = solvedSet.size;
+          } catch {
+            activeSession.solvedCount = 0;
+          }
+
+          activeSession.step = 'waiting_age';
+          serverStore.setRegistrationSession(chatId, activeSession);
+
+          const promptAgeMsg =
+            `🎂 *What is your Age? (Step 3 of 3)*\n\n` +
+            `✅ Verified Codeforces profile: *@${u.handle}*\n` +
+            `⭐ Rating: *${u.rating || 0}* (${u.rank || 'unrated'})\n` +
+            `✅ Problems Solved: *${activeSession.solvedCount}*\n\n` +
+            `Please enter your *Age* as a number (e.g. \`16\` or \`21\`):\n` +
+            `_Or tap Skip Age / send \`/skip\` if you prefer not to specify._`;
+
+          await sendTelegramMessage(chatId, promptAgeMsg, {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '⏩ Skip Age', callback_data: 'cb_reg_skip_age' }],
+                [{ text: '❌ Cancel Registration', callback_data: 'cb_reg_cancel' }],
+              ],
+            },
+          });
+        } catch (err: any) {
+          await sendTelegramMessage(chatId, `⚠️ Error connecting to Codeforces: ${err.message}. Please try sending your handle again:`);
+        }
+        return NextResponse.json({ ok: true });
+      }
+
+      if (activeSession.step === 'waiting_age') {
+        const rawInput = text.trim().toLowerCase();
+        let ageVal: number | undefined = undefined;
+
+        if (rawInput !== 'skip' && rawInput !== '/skip' && rawInput !== 'none') {
+          const parsed = parseInt(rawInput, 10);
+          if (isNaN(parsed) || parsed < 5 || parsed > 120) {
+            await sendTelegramMessage(
+              chatId,
+              `⚠️ Please enter a valid age number (between 5 and 100), or tap *Skip Age* / send \`/skip\`:`,
+              {
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: '⏩ Skip Age', callback_data: 'cb_reg_skip_age' }],
+                    [{ text: '❌ Cancel Registration', callback_data: 'cb_reg_cancel' }],
+                  ],
+                },
+              }
+            );
+            return NextResponse.json({ ok: true });
+          }
+          ageVal = parsed;
+        }
+
+        activeSession.age = ageVal;
+        activeSession.step = 'waiting_confirmation';
+        serverStore.setRegistrationSession(chatId, activeSession);
+        await sendConfirmationCard(chatId, activeSession);
+        return NextResponse.json({ ok: true });
+      }
+
+      if (activeSession.step === 'waiting_confirmation') {
+        await sendConfirmationCard(chatId, activeSession);
+        return NextResponse.json({ ok: true });
+      }
+    }
+
     if (command === '/ai' || command === '/ask') {
       const prompt = args.join(' ').trim();
       if (!prompt) {
@@ -562,6 +920,7 @@ export async function POST(req: Request) {
 `👋 *Assalomu alaykum, Coach ${settings.teacherName || 'Abubakr'}!* 👨‍🏫
 *Welcome to your Classroom Command Cockpit*
 
+🌐 *Production Platform:* ${WEB_URL}
 👥 *Classroom:* Algorithms & Competitive Programming 2026
 📊 *Roster:* *${students.length} students enrolled* (${analytics.activeStudents} active)
 📈 *Class Avg Rating:* *${analytics.averageRating}* (Floor: ${analytics.lowestRating}, Peak: ${analytics.highestRating})
@@ -574,23 +933,26 @@ _Select an action below or tap Web App to open the dashboard:_`;
         const teacherKeyboard = {
           inline_keyboard: [
             [
+              { text: '📝 Register Student', callback_data: 'cb_register_start' },
               { text: '🏆 Live Leaderboard', callback_data: 'cb_leaderboard' },
+            ],
+            [
               { text: '⚡ Next Contest', callback_data: 'cb_next' },
-            ],
-            [
               { text: '👥 Students Roster', callback_data: 'cb_students' },
-              { text: '👨‍🏫 My Coach Profile', callback_data: 'cb_my' },
             ],
             [
-              { text: '📅 All Contests', callback_data: 'cb_contests' },
+              { text: '👨‍🏫 My Coach Profile', callback_data: 'cb_my' },
               { text: '💡 Problem of the Day', callback_data: 'cb_potd' },
             ],
             [
-              { text: '🔔 Test Contest Alert', callback_data: 'cb_alert_test' },
+              { text: '📅 All Contests', callback_data: 'cb_contests' },
               { text: '🤖 Ask AI Assistant', callback_data: 'cb_ai' },
             ],
             [
-              { text: '🌐 Open Web Dashboard ↗️', url: `${WEB_URL}` },
+              { text: '🔔 Test Contest Alert', callback_data: 'cb_alert_test' },
+            ],
+            [
+              { text: '🌐 Open Production Hub ↗️', url: `${WEB_URL}` },
             ],
           ],
         };
@@ -610,6 +972,7 @@ _Select an action below or tap Web App to open the dashboard:_`;
 *Codeforces Classroom Hub*
 _Coach: Abubakr Juraev (@${settings.teacherHandle})_
 
+🌐 *Production Platform:* ${WEB_URL}
 ⭐ *Your Current Rating:* *${rating}* (${rank})
 ✅ *Problems Solved:* *${solved}*
 🏫 *Batch:* Algorithms & Competitive Programming 2026
@@ -628,10 +991,10 @@ Tap below to check the leaderboard, practice today's challenge, or view upcoming
             ],
             [
               { text: '🤖 Ask AI Coach', callback_data: 'cb_ai' },
-              { text: '👤 My Profile & Stats', url: `${WEB_URL}/students/${enrolledStudent.id}` },
+              { text: '👤 My Profile & Stats ↗️', url: `${WEB_URL}/students/${enrolledStudent.id}` },
             ],
             [
-              { text: '🌐 Open Classroom Hub ↗️', url: `${WEB_URL}` },
+              { text: '🌐 Open Production Hub ↗️', url: `${WEB_URL}` },
             ],
           ],
         };
@@ -645,31 +1008,43 @@ Tap below to check the leaderboard, practice today's challenge, or view upcoming
 *Codeforces Classroom Hub*
 _Mentored by Coach Abubakr Juraev (@${settings.teacherHandle})_
 
+🌐 *Production Classroom Platform:*
+${WEB_URL}
+
 🎯 *Class:* Algorithms & Competitive Programming 2026
-💡 Train algorithms, track your rating trajectory, and get instant contest reminders.
+💡 Track your Codeforces rating trajectory, submissions, and get automated contest alerts.
 
-*How to enroll in 10 seconds:*
-Send: \`/join <your_codeforces_handle> [Your Name]\`
-_Example:_ \`/join tourist Gennady Korotkevich\`
+*Fast 3-Step Enrollment:*
+Tap *📝 Join / Register Student* below:
+1️⃣ Your Full Name
+2️⃣ Your Codeforces nickname or profile link
+3️⃣ Your Age
 
-Choose an option below to explore:`;
+_Or directly send:_ \`/join <nick_or_link> [Full Name] [Age]\`
+_Example:_ \`/join tourist Gennady Korotkevich 29\`
+
+Choose an option below to get started:`;
 
       const guestKeyboard = {
         inline_keyboard: [
           [
+            { text: '📝 Join / Register Student', callback_data: 'cb_register_start' },
             { text: '🏆 View Leaderboard', callback_data: 'cb_leaderboard' },
+          ],
+          [
             { text: '⚡ Next Contest', callback_data: 'cb_next' },
+            { text: '👥 Students Roster', callback_data: 'cb_students' },
           ],
           [
-            { text: '➕ How to Join Classroom', callback_data: 'cb_join' },
             { text: '💡 Problem of the Day', callback_data: 'cb_potd' },
-          ],
-          [
             { text: '📅 Contests Schedule', callback_data: 'cb_contests' },
-            { text: '🤖 Ask AI Assistant', callback_data: 'cb_ai' },
           ],
           [
-            { text: '🌐 Open Web Classroom ↗️', url: `${WEB_URL}` },
+            { text: '🤖 Ask AI Assistant', callback_data: 'cb_ai' },
+            { text: '➕ How to Join Guide', callback_data: 'cb_join' },
+          ],
+          [
+            { text: '🌐 Open Production Hub ↗️', url: `${WEB_URL}` },
           ],
         ],
       };
@@ -713,11 +1088,45 @@ Choose an option below to explore:`;
       return NextResponse.json({ ok: true });
     }
 
+    if (['/homework', '/assignments', '/assignment', '/ps'].includes(command)) {
+      const assignments = serverStore.getAssignments();
+      if (assignments.length === 0) {
+        await sendTelegramMessage(chatId, `ℹ️ No active problem sets assigned yet.\n\n🌐 View Hub: ${WEB_URL}/assignments`);
+        return NextResponse.json({ ok: true });
+      }
+
+      let msg = `📚 *Classroom Problem Sets & Homework*\n\n`;
+      assignments.slice(0, 3).forEach((a, idx) => {
+        const daysLeft = Math.ceil((new Date(a.dueDate).getTime() - Date.now()) / (1000 * 3600 * 24));
+        const dueText = daysLeft < 0 ? '⚠️ Past Due' : `⏰ ${daysLeft}d left`;
+        const probList = a.problems.map((p) => `• [${p.id} - ${p.name}](${p.url})`).join('\n');
+        msg += `*${idx + 1}. ${a.title}* (${dueText})\n📊 Progress: *${a.completionRate}%*\n${probList}\n\n`;
+      });
+      msg += `🌐 [Open Full Problem Sets Manager](${WEB_URL}/assignments)`;
+
+      await sendTelegramMessage(chatId, msg, {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '📚 View All Problem Sets', url: `${WEB_URL}/assignments` },
+              { text: '🏆 Standings', url: `${WEB_URL}/leaderboard` },
+            ],
+          ],
+        },
+      });
+      return NextResponse.json({ ok: true });
+    }
+
     if (command === '/help') {
       await sendTelegramMessage(
         chatId,
         `📚 *Codeforces Classroom Hub Guide*\n\n` +
-          `• \`/start\` : Interactive button menu & greeting\n` +
+          `• \`/start\` : Interactive menu & platform link\n` +
+          `• \`/register\` : Step-by-step registration wizard (Name, Nick/Link, Age)\n` +
+          `• \`/join <handle|link> [name] [age]\` : 1-line enrollment with details\n` +
+          `• \`/homework\` : Active problem sets & assignments\n` +
+          `• \`/cancel\` : Abort active registration\n` +
+          `• \`/link\` : Shareable invite links\n` +
           `• \`/leaderboard\` : Classroom standings\n` +
           `• \`/next\` : Nearest upcoming contest countdown\n` +
           `• \`/contests\` : Upcoming Codeforces rounds\n` +
@@ -727,9 +1136,8 @@ Choose an option below to explore:`;
           `• \`/class\` : Classroom analytics overview\n` +
           `• \`/rating <handle>\` : Codeforces rating check\n` +
           `• \`/problems <handle>\` : Problem solve breakdown\n` +
-          `• \`/join <handle> [name]\` : Enroll in classroom\n` +
           `• \`/ai <question>\` : Ask AI teaching assistant\n\n` +
-          `🌐 Dashboard: ${WEB_URL}`
+          `🌐 *Production Platform:* ${WEB_URL}`
       );
       return NextResponse.json({ ok: true });
     }
@@ -828,38 +1236,51 @@ Choose an option below to explore:`;
       return NextResponse.json({ ok: true });
     }
 
-    // Shared Enrollment logic for /add, /addstudent, /join, /enroll
-    const isAddCommand = ['/add', '/addstudent', '/join', '/enroll'].includes(command);
+    // Shared Enrollment logic for /register, /add, /addstudent, /join, /enroll, and profile links
+    const isRegisterCommand = command === '/register';
+    const isAddCommand = ['/add', '/addstudent'].includes(command);
+    const isJoinCommand = ['/join', '/enroll'].includes(command);
     const isProfileUrl = text.includes('codeforces.com/profile/');
 
-    if (isAddCommand || isProfileUrl) {
-      let handleCandidate = args[0] || '';
-      let customNameCandidate = args.slice(1).join(' ').trim();
+    if (isRegisterCommand || isAddCommand || isJoinCommand || isProfileUrl) {
+      // If user typed /register or /join without arguments, trigger guided interactive registration
+      if ((isRegisterCommand || isJoinCommand) && args.length === 0 && !isProfileUrl) {
+        await startRegistration(chatId, firstName);
+        return NextResponse.json({ ok: true });
+      }
 
-      if (isProfileUrl && !isAddCommand) {
+      let handleCandidate = '';
+      let remainingArgs: string[] = [];
+
+      if (isProfileUrl) {
         const urlMatch = text.match(/codeforces\.com\/profile\/([a-zA-Z0-9_\-\.]+)/i);
         if (urlMatch) {
           handleCandidate = urlMatch[1];
         }
+        remainingArgs = args.filter((a: string) => !a.includes('codeforces.com/profile/'));
+      } else {
+        handleCandidate = (args[0] || '').replace(/^@/, '');
+        remainingArgs = args.slice(1);
       }
 
-      const urlMatch = handleCandidate.match(/codeforces\.com\/profile\/([a-zA-Z0-9_\-\.]+)/i);
-      if (urlMatch) {
-        handleCandidate = urlMatch[1];
+      // Check if last argument is an age number (e.g. "17")
+      let ageCandidate: number | undefined = undefined;
+      if (remainingArgs.length > 0) {
+        const lastArg = remainingArgs[remainingArgs.length - 1];
+        if (/^\d{1,3}$/.test(lastArg)) {
+          const parsed = parseInt(lastArg, 10);
+          if (parsed >= 5 && parsed <= 120) {
+            ageCandidate = parsed;
+            remainingArgs = remainingArgs.slice(0, -1);
+          }
+        }
       }
+
+      let customNameCandidate = remainingArgs.join(' ').trim();
       const rawHandle = handleCandidate.replace('@', '').trim();
 
       if (!rawHandle) {
-        await sendTelegramMessage(
-          chatId,
-          `👤 *How to add a student via Telegram:*\n\n` +
-            `Send: \`/add <cf_handle> [Full Name]\`\n\n` +
-            `*Examples:*\n` +
-            `• \`/add tourist\`\n` +
-            `• \`/add tourist Gennady Korotkevich\`\n` +
-            `• Or simply paste their link: \`https://codeforces.com/profile/tourist\`\n\n` +
-            `The bot will automatically verify the handle on Codeforces, fetch their rating, photo, and solved problems, and add them directly to your classroom!`
-        );
+        await startRegistration(chatId, firstName);
         return NextResponse.json({ ok: true });
       }
 
@@ -880,12 +1301,15 @@ Choose an option below to explore:`;
         return NextResponse.json({ ok: true });
       }
 
-      await sendTelegramMessage(chatId, `⏳ Verifying handle \`@${rawHandle}\` on Codeforces and pulling submissions...`);
+      await sendTelegramMessage(chatId, `⏳ Verifying handle \`@${rawHandle}\` on Codeforces...`);
 
       try {
         const users = await fetchCF<any[]>('user.info', { handles: rawHandle });
         if (!users || users.length === 0) {
-          await sendTelegramMessage(chatId, `❌ Codeforces user \`@${rawHandle}\` not found. Please double-check the handle spelling.`);
+          await sendTelegramMessage(
+            chatId,
+            `❌ Codeforces user \`@${rawHandle}\` not found. Please double-check handle spelling.`
+          );
           return NextResponse.json({ ok: true });
         }
 
@@ -901,37 +1325,37 @@ Choose an option below to explore:`;
           }
         }
 
-        const classes = serverStore.getClassrooms();
-        const targetClass = classes[0];
+        // Fetch solved count
+        let solvedCount = 0;
+        try {
+          const subs = await fetchCF<any[]>('user.status', { handle: u.handle, from: '1', count: '1000' });
+          const solvedSet = new Set<string>();
+          subs.forEach((s: any) => {
+            if (s.verdict === 'OK' && s.problem) {
+              solvedSet.add(`${s.problem.contestId}-${s.problem.index}`);
+            }
+          });
+          solvedCount = solvedSet.size;
+        } catch {
+          solvedCount = 0;
+        }
 
-        const newStudent = await serverStore.addStudent({
+        // Save session in confirmation step
+        const session: RegistrationSession = {
+          step: 'waiting_confirmation',
           name: studentName,
           codeforcesHandle: u.handle,
-          classId: targetClass.id,
-          group: 'Standard',
-        });
+          age: ageCandidate,
+          cfUser: u,
+          solvedCount,
+          updatedAt: Date.now(),
+        };
+        serverStore.setRegistrationSession(chatId, session);
 
-        const stats = newStudent.stats;
-        const rating = stats?.rating || 0;
-        const rank = stats?.rank || 'unrated';
-        const maxRating = stats?.maxRating || 'N/A';
-        const solved = stats?.solvedCount || 0;
-
-        await sendTelegramMessage(
-          chatId,
-          `🎉 *Successfully Added Student to Classroom!*\n\n` +
-            `👤 *Name:* ${newStudent.name}\n` +
-            `🎯 *Codeforces Handle:* @${newStudent.codeforcesHandle}\n` +
-            `⭐ *Rating:* ${rating} (${rank})\n` +
-            `🏆 *Max Rating:* ${maxRating}\n` +
-            `✅ *Problems Solved:* ${solved}\n` +
-            `🏫 *Classroom:* ${targetClass.name}\n\n` +
-            `Submissions and rating are now active in the telemetry cockpit!\n\n` +
-            `🔗 [Open Student Profile](${WEB_URL}/students/${newStudent.id})\n` +
-            `🏆 [View Leaderboard](${WEB_URL}/leaderboard)`
-        );
+        // Display confirmation card so user/teacher confirms
+        await sendConfirmationCard(chatId, session);
       } catch (err: any) {
-        await sendTelegramMessage(chatId, `❌ Failed to add student: ${err.message}`);
+        await sendTelegramMessage(chatId, `❌ Failed to lookup student: ${err.message}`);
       }
       return NextResponse.json({ ok: true });
     }
