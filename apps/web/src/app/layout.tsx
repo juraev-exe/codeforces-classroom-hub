@@ -1,5 +1,6 @@
 import './globals.css';
 import { Sidebar } from '@/components/Sidebar';
+import { CommandPalette } from '@/components/CommandPalette';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -18,12 +19,15 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" style={{ fontSize: "14.5px" }}>
       <body className="min-h-screen bg-background text-zinc-100 antialiased selection:bg-blue-500/30 selection:text-blue-200">
-        <Sidebar />
-        <div className="lg:pl-64 flex flex-col min-h-screen">
-          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <CommandPalette />
+        <div className="print:hidden">
+          <Sidebar />
+        </div>
+        <div className="lg:pl-64 flex flex-col min-h-screen print:pl-0 print:min-h-0">
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:m-0 print:max-w-none">
             {children}
           </main>
-          <footer className="mt-auto border-t border-white/[0.06] py-6 text-center text-xs text-zinc-500">
+          <footer className="mt-auto border-t border-white/[0.06] py-6 text-center text-xs text-zinc-500 print:hidden">
             <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>

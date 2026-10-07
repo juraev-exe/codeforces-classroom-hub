@@ -22,10 +22,69 @@ import {
   FileCode,
   Laptop,
   Flame,
+  Send,
+  X,
+  Mail,
+  Building,
 } from 'lucide-react';
 
 export default function ShowcasePage() {
   const [annualBilling, setAnnualBilling] = useState(true);
+
+  // Inquiry / Demo Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTier, setSelectedTier] = useState('Academy Pro ($79/mo)');
+  const [academyName, setAcademyName] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [emailOrTelegram, setEmailOrTelegram] = useState('');
+  const [studentCount, setStudentCount] = useState('20 - 50 Students');
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  function openDemoModal(tier: string) {
+    setSelectedTier(tier);
+    setSubmitted(false);
+    setStatusError(null);
+    setIsModalOpen(true);
+  }
+
+  async function handleInquirySubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!contactName.trim() || !emailOrTelegram.trim()) {
+      setStatusError('Please provide your name and email or Telegram handle.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setStatusError(null);
+      const res = await fetch('/api/inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          academyName: academyName.trim() || undefined,
+          contactName: contactName.trim(),
+          emailOrTelegram: emailOrTelegram.trim(),
+          studentCount,
+          tier: selectedTier,
+          notes: notes.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send inquiry');
+      }
+
+      setSubmitted(true);
+    } catch (err: any) {
+      setStatusError(err.message || 'Failed to submit inquiry');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="space-y-16 pb-20">
@@ -52,22 +111,31 @@ export default function ShowcasePage() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-2">
-          <Link
-            href="/"
+          <button
+            type="button"
+            onClick={() => openDemoModal('Academy Pro ($79/mo)')}
             className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-xl shadow-blue-600/35 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group"
           >
-            <span>Launch Live Dashboard</span>
+            <span>Request Academy Pilot</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+
+          <Link
+            href="/"
+            className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-white font-semibold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            <Laptop className="w-4 h-4 text-blue-400" />
+            <span>Open Live Dashboard</span>
           </Link>
 
           <a
             href="https://t.me/CodeForcesStudents_Bot"
             target="_blank"
             rel="noreferrer"
-            className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-white font-semibold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-white font-semibold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <Bot className="w-4 h-4 text-emerald-400" />
-            <span>Test Telegram Bot</span>
+            <span>Test Bot</span>
           </a>
         </div>
 
@@ -239,12 +307,13 @@ export default function ShowcasePage() {
               </ul>
             </div>
 
-            <Link
-              href="/join"
+            <button
+              type="button"
+              onClick={() => openDemoModal('Coach ($29/mo)')}
               className="w-full py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-white font-semibold text-xs text-center transition block active:scale-[0.98]"
             >
-              Get Started
-            </Link>
+              Start Coach Pilot
+            </button>
           </div>
 
           {/* Plan 2: Academy Pro (Featured) */}
@@ -295,12 +364,13 @@ export default function ShowcasePage() {
               </ul>
             </div>
 
-            <Link
-              href="/"
+            <button
+              type="button"
+              onClick={() => openDemoModal('Academy Pro ($79/mo)')}
               className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs text-center shadow-lg shadow-blue-600/30 transition block active:scale-[0.98]"
             >
-              Start 14-Day Free Trial
-            </Link>
+              Start 14-Day Free Pilot
+            </button>
           </div>
 
           {/* Plan 3: Enterprise */}
@@ -343,14 +413,13 @@ export default function ShowcasePage() {
               </ul>
             </div>
 
-            <a
-              href="https://t.me/AbubakrJ"
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => openDemoModal('Enterprise ($199/mo)')}
               className="w-full py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-white font-semibold text-xs text-center transition block active:scale-[0.98]"
             >
-              Contact Sales
-            </a>
+              Contact Enterprise Sales
+            </button>
           </div>
         </div>
       </section>
@@ -368,9 +437,16 @@ export default function ShowcasePage() {
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2 relative">
+          <button
+            type="button"
+            onClick={() => openDemoModal('Academy Pro ($79/mo)')}
+            className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition active:scale-[0.98]"
+          >
+            Request Academy Pilot
+          </button>
           <Link
             href="/"
-            className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition active:scale-[0.98]"
+            className="px-6 py-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-white font-semibold text-xs transition active:scale-[0.98]"
           >
             Open Live Classroom
           </Link>
@@ -382,6 +458,160 @@ export default function ShowcasePage() {
           </Link>
         </div>
       </section>
+
+      {/* INTERACTIVE DEMO & INQUIRY MODAL */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="glass-panel w-full max-w-lg rounded-3xl border border-white/15 p-6 sm:p-8 space-y-6 shadow-2xl relative">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {submitted ? (
+              <div className="text-center py-6 space-y-4">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+                  <CheckCircle2 className="w-7 h-7" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold text-white tracking-tight">Pilot Request Received!</h3>
+                  <p className="text-xs text-zinc-300 max-w-xs mx-auto">
+                    Thank you! An instant alert has been sent to Coach Abubakr. We will reach out to get your classroom activated.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-xs text-zinc-300 space-y-2">
+                  <p className="font-semibold text-white">Need an immediate setup?</p>
+                  <p>Message lead instructor directly on Telegram:</p>
+                  <a
+                    href="https://t.me/AbubakrJ"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 font-semibold border border-blue-500/30 transition"
+                  >
+                    <Bot className="w-4 h-4" />
+                    <span>Chat with @AbubakrJ on Telegram ↗</span>
+                  </a>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs transition"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleInquirySubmit} className="space-y-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      {selectedTier}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white tracking-tight">
+                    Request an Academy Pilot
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    Get full access to automated problem set grading and Telegram bot automation.
+                  </p>
+                </div>
+
+                {statusError && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
+                    {statusError}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-zinc-300">Academy / School / Organization</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Tashkent STEM Academy"
+                      value={academyName}
+                      onChange={(e) => setAcademyName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-zinc-300">Your Full Name *</label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="e.g. Sardor Umarov"
+                        value={contactName}
+                        onChange={(e) => setContactName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-zinc-300">Email or Telegram *</label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="e.g. @sardor or email"
+                        value={emailOrTelegram}
+                        onChange={(e) => setEmailOrTelegram(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-zinc-300">Estimated Student Cohort Size</label>
+                    <select
+                      value={studentCount}
+                      onChange={(e) => setStudentCount(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500 transition"
+                    >
+                      <option value="10 - 25 Students" className="bg-zinc-900">10 - 25 Students</option>
+                      <option value="25 - 60 Students" className="bg-zinc-900">25 - 60 Students (Academy Pro)</option>
+                      <option value="60 - 150 Students" className="bg-zinc-900">60 - 150 Students</option>
+                      <option value="150+ Students (Enterprise)" className="bg-zinc-900">150+ Students (Enterprise Custom)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-zinc-300">Specific Goals or Notes (Optional)</label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g. We are training 30 high schoolers for the National Olympiad."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs text-zinc-400 hover:text-white transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {submitting ? 'Sending Request...' : 'Submit Pilot Request'}
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

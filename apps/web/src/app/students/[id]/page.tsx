@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Tag,
   CheckCircle2,
+  Printer,
 } from 'lucide-react';
 import {
   LineChart,
@@ -113,11 +114,12 @@ export default function StudentDetailPage() {
   }));
 
   return (
-    <div className="space-y-7">
-      {/* Back button & Breadcrumb */}
-      <div className="flex items-center justify-between">
-        <Link
-          href="/students"
+    <>
+      <div className="space-y-7 print:hidden">
+        {/* Back button & Breadcrumb */}
+        <div className="flex items-center justify-between">
+          <Link
+            href="/students"
           className="inline-flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-white glass-pill px-3 py-1.5 rounded-xl transition active:scale-[0.97]"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Students
@@ -207,6 +209,15 @@ export default function StudentDetailPage() {
             <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold block">Contests</span>
             <div className="text-xl font-bold text-white font-mono">{stats?.contestCount || 0}</div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-3 bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-white rounded-2xl text-xs font-semibold transition active:scale-[0.97]"
+          >
+            <Printer className="w-3.5 h-3.5 text-zinc-300" />
+            <span>Print Report Card</span>
+          </button>
 
           <button
             onClick={handleSync}
@@ -391,5 +402,142 @@ export default function StudentDetailPage() {
         </div>
       </div>
     </div>
+
+    {/* ========================================================================= */}
+    {/* OFFICIAL PRINTABLE ACADEMIC REPORT CARD (VISIBLE ONLY IN PRINT / PDF)    */}
+    {/* ========================================================================= */}
+    <div className="hidden print:block text-black bg-white p-8 max-w-4xl mx-auto font-sans leading-normal">
+      {/* Letterhead Header */}
+      <div className="border-b-2 border-black pb-4 mb-6 flex justify-between items-start">
+        <div>
+          <div className="text-[10px] uppercase tracking-widest font-bold text-gray-500">Official Certification & Audit</div>
+          <h1 className="text-2xl font-black tracking-tight text-black uppercase">Codeforces Classroom Hub</h1>
+          <p className="text-xs font-semibold text-gray-700">Algorithms & Competitive Programming Academic Batch 2026</p>
+          <p className="text-[11px] text-gray-500">Mentored by Lead Coach Abubakr Juraev (@AbubakrJ)</p>
+        </div>
+        <div className="text-right text-xs text-gray-600">
+          <p className="font-bold text-black uppercase">Official Student Report</p>
+          <p>Date: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p className="font-mono text-[10px] text-gray-500">ID: CF-HUB-{student.id.slice(0, 8).toUpperCase()}</p>
+        </div>
+      </div>
+
+      {/* Student Demographics Box */}
+      <div className="border border-gray-300 rounded-lg p-4 mb-6 bg-gray-50/50 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+        <div>
+          <span className="text-gray-500 block uppercase text-[10px] font-semibold">Student Name</span>
+          <span className="font-bold text-sm text-black">{student.name}</span>
+        </div>
+        <div>
+          <span className="text-gray-500 block uppercase text-[10px] font-semibold">Codeforces Handle</span>
+          <span className="font-mono font-bold text-sm text-black">@{student.codeforcesHandle}</span>
+        </div>
+        <div>
+          <span className="text-gray-500 block uppercase text-[10px] font-semibold">Class Cohort / Age</span>
+          <span className="font-semibold text-black">{student.className || 'Algorithms 2026'} {student.age ? `(${student.age} yo)` : ''}</span>
+        </div>
+        <div>
+          <span className="text-gray-500 block uppercase text-[10px] font-semibold">Current Rank</span>
+          <span className="font-bold uppercase text-black">{(stats?.rank || 'Unrated')}</span>
+        </div>
+      </div>
+
+      {/* Core CP Metrics Table */}
+      <div className="mb-6">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2 border-b border-gray-200 pb-1">
+          Competitive Programming Telemetry
+        </h2>
+        <table className="w-full text-xs text-left border-collapse border border-gray-300">
+          <thead>
+            <tr className="bg-gray-100 text-gray-700">
+              <th className="border border-gray-300 p-2 font-bold">Metric</th>
+              <th className="border border-gray-300 p-2 font-bold">Recorded Value</th>
+              <th className="border border-gray-300 p-2 font-bold">Olympiad Benchmark</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="border border-gray-300 p-2 font-medium">Live Codeforces Rating</td>
+              <td className="border border-gray-300 p-2 font-bold font-mono">{stats?.rating || 'Unrated'}</td>
+              <td className="border border-gray-300 p-2 text-gray-600">Div. 2/3 Benchmark standard</td>
+            </tr>
+            <tr className="bg-gray-50/50">
+              <td className="border border-gray-300 p-2 font-medium">Peak Historic Rating</td>
+              <td className="border border-gray-300 p-2 font-bold font-mono">{stats?.maxRating || 'N/A'}</td>
+              <td className="border border-gray-300 p-2 text-gray-600">All-time Codeforces maximum</td>
+            </tr>
+            <tr>
+              <td className="border border-gray-300 p-2 font-medium">Total Solved Problems</td>
+              <td className="border border-gray-300 p-2 font-bold font-mono">{stats?.solvedCount || 0}</td>
+              <td className="border border-gray-300 p-2 text-gray-600">Unique accepted solutions verified</td>
+            </tr>
+            <tr className="bg-gray-50/50">
+              <td className="border border-gray-300 p-2 font-medium">Official Contests Attended</td>
+              <td className="border border-gray-300 p-2 font-bold font-mono">{stats?.contestCount || 0}</td>
+              <td className="border border-gray-300 p-2 text-gray-600">Rated competition rounds</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Topic Mastery Distribution */}
+      {tagDistribution && tagDistribution.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2 border-b border-gray-200 pb-1">
+            Topic Mastery & Solve Breakdown
+          </h2>
+          <div className="grid grid-cols-4 gap-2 text-[11px]">
+            {tagDistribution.slice(0, 8).map((t: any) => (
+              <div key={t.tag} className="border border-gray-200 p-2 rounded bg-gray-50">
+                <div className="font-semibold text-gray-700 capitalize">{t.tag}</div>
+                <div className="font-bold text-black font-mono">{t.count} solved</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Verified Accepted Submissions */}
+      <div className="mb-8">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2 border-b border-gray-200 pb-1">
+          Recent Verified Codeforces Submissions
+        </h2>
+        <table className="w-full text-[11px] text-left border-collapse border border-gray-300">
+          <thead>
+            <tr className="bg-gray-100 text-gray-700">
+              <th className="border border-gray-300 p-1.5 font-bold">Problem</th>
+              <th className="border border-gray-300 p-1.5 font-bold">Difficulty</th>
+              <th className="border border-gray-300 p-1.5 font-bold">Verdict</th>
+              <th className="border border-gray-300 p-1.5 font-bold">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recentSubmissions.slice(0, 6).map((sub: any) => (
+              <tr key={sub.id}>
+                <td className="border border-gray-300 p-1.5 font-medium">{sub.problemId} - {sub.problemName}</td>
+                <td className="border border-gray-300 p-1.5 font-mono">{sub.problemRating ? `★ ${sub.problemRating}` : '—'}</td>
+                <td className="border border-gray-300 p-1.5 font-bold text-green-700">{sub.verdict === 'OK' ? 'Accepted (OK)' : sub.verdict}</td>
+                <td className="border border-gray-300 p-1.5 text-gray-600">{new Date(sub.submittedAt).toLocaleDateString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Sign-off & Coach Endorsement */}
+      <div className="border-t-2 border-black pt-4 flex justify-between items-end text-xs">
+        <div>
+          <p className="font-bold text-black">ABUBAKR JURAEV</p>
+          <p className="text-gray-600">Lead Algorithms & CP Coach</p>
+          <p className="text-gray-500 font-mono text-[10px]">Codeforces: @AbubakrJ | ACMP.ru: #515125</p>
+        </div>
+        <div className="text-right space-y-1">
+          <div className="w-48 border-b border-black mb-1"></div>
+          <p className="text-[10px] text-gray-500">Instructor Endorsement Signature</p>
+          <p className="text-[9px] text-gray-400">Classroom Hub Verified Authenticity</p>
+        </div>
+      </div>
+    </div>
+  </>
   );
 }

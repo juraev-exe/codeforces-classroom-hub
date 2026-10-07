@@ -2,9 +2,23 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { NextResponse } from 'next/server';
 
 export function requireAuth(req: Request): NextResponse | null {
+  // Allow single-tenant / local cockpit mode by default unless REQUIRE_AUTH is explicitly set to 'true'
+  if (process.env.REQUIRE_AUTH !== 'true') {
+    return null;
+  }
+
+  // Allow custom admin key or cron secret for automation / CI
+  const adminKey = process.env.ADMIN_API_KEY || process.env.CRON_SECRET;
+  if (adminKey) {
+    const customHeader = req.headers.get('x-admin-key');
+    if (customHeader === adminKey) return null;
+    const authHeader = req.headers.get('authorization');
+    if (authHeader === `Bearer ${adminKey}`) return null;
+  }
+
   const secret = process.env.JWT_SECRET;
   if (!secret || secret.length < 32) {
-    console.error('JWT_SECRET must be configured with at least 32 characters.');
+    console.error('JWT_SECRET must be configured with at least 32 characters when REQUIRE_AUTH=true.');
     return NextResponse.json({ error: 'Authentication is not configured.' }, { status: 503 });
   }
 

@@ -43,6 +43,7 @@ export default function AssignmentsPage() {
   const [classInput, setClassInput] = useState('');
   const [problemInput, setProblemInput] = useState('');
   const [dueDaysInput, setDueDaysInput] = useState('7');
+  const [notifyTelegramInput, setNotifyTelegramInput] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -110,6 +111,7 @@ export default function AssignmentsPage() {
           classId: classInput,
           problemInput: problemInput.trim(),
           dueDate,
+          notifyTelegram: notifyTelegramInput,
         }),
       });
 
@@ -555,6 +557,18 @@ export default function AssignmentsPage() {
                     className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/10 text-xs text-white focus:outline-none focus:border-blue-500 transition"
                   />
                 </div>
+              </div>
+
+              <div className="pt-1">
+                <label className="flex items-center gap-2.5 text-xs text-zinc-300 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={notifyTelegramInput}
+                    onChange={(e) => setNotifyTelegramInput(e.target.checked)}
+                    className="rounded border-white/20 bg-black/40 text-blue-600 focus:ring-blue-500/40"
+                  />
+                  <span>Announce to Telegram channel immediately via @CodeForcesStudents_Bot 📣</span>
+                </label>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2.5">

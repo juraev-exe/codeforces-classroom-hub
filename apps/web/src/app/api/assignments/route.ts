@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { serverStore } from '@/lib/server-store';
+import { serverStore, sendTelegramNotification } from '@/lib/server-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, description, classId, problemInput, dueDate } = body;
+    const { title, description, classId, problemInput, dueDate, notifyTelegram } = body;
 
     if (!title || !classId || !problemInput) {
       return NextResponse.json(
@@ -33,6 +33,23 @@ export async function POST(req: Request) {
       problemInput: String(problemInput),
       dueDate: dueDate || undefined,
     });
+
+    if (notifyTelegram) {
+      try {
+        const probText = assignment.problems.map((p) => `• [${p.id} - ${p.name}](${p.url})`).join('\n');
+        const due = assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'No deadline';
+        await sendTelegramNotification(
+          `📚 *New Classroom Assignment Assigned!*\n\n` +
+          `📝 *${assignment.title}*\n` +
+          (assignment.description ? `_${assignment.description}_\n\n` : '\n') +
+          `🎯 *Problems:*\n${probText}\n\n` +
+          `⏰ *Due Date:* ${due}\n` +
+          `🌐 Open Hub: https://codeforces-classroom-hub.vercel.app/assignments`
+        );
+      } catch (tgErr) {
+        console.warn('Failed to dispatch telegram notification for assignment:', tgErr);
+      }
+    }
 
     return NextResponse.json(assignment, { status: 201 });
   } catch (err: any) {
