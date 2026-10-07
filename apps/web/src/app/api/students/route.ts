@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { serverStore } from '@/lib/server-store';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const authError = requireAuth(req);
+  if (authError) return authError;
+
   try {
     const body = await req.json();
     const { name, codeforcesHandle, classId, group, age, telegramChatId, telegramUsername } = body;

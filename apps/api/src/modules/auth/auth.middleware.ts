@@ -18,6 +18,10 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
     return res.status(401).json({ error: 'Invalid or expired token.' });
   }
 
+  if (user.role !== 'teacher' && user.role !== 'admin') {
+    return res.status(403).json({ error: 'Insufficient permissions.' });
+  }
+
   req.user = user;
   next();
 }

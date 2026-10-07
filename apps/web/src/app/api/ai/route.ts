@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { serverStore } from '@/lib/server-store';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  const authError = requireAuth(req);
+  if (authError) return authError;
+
   try {
     const body = await req.json().catch(() => ({}));
     const question = (body.question || '').trim();

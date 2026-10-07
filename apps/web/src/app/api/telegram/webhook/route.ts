@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
 import { serverStore, fetchCF, type RegistrationSession } from '@/lib/server-store';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +18,7 @@ async function sendTelegramMessage(chatId: number | string, text: string, extra:
   try {
     const token = getBotToken();
     if (!token) {
-      console.warn('sendTelegramMessage skipped: TELEGRAM_BOT_TOKEN not configured');
+      console.error('Telegram bot token is not configured.');
       return;
     }
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -39,7 +40,10 @@ async function sendTelegramMessage(chatId: number | string, text: string, extra:
 async function answerCallbackQuery(callbackQueryId: string, text?: string) {
   try {
     const token = getBotToken();
-    if (!token) return;
+    if (!token) {
+      console.error('Telegram bot token is not configured.');
+      return;
+    }
     await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -562,7 +566,15 @@ async function callAI(prompt: string): Promise<string> {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action');
+  if (action) {
+    const authError = requireAuth(req);
+    if (authError) return authError;
+  }
+
   const token = getBotToken();
+  if (action && !token) {
+    return NextResponse.json({ error: 'Telegram bot token is not configured.' }, { status: 503 });
+  }
 
   if (action === 'set') {
     const customUrl = searchParams.get('url');

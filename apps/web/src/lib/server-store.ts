@@ -269,9 +269,9 @@ export async function sendTelegramNotification(
   customChatId?: string
 ): Promise<{ success: boolean; error?: string }> {
   const settings = { ...DEFAULT_SETTINGS, ...(memoryStore.settings || {}) };
-  const token = settings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN || '';
+  const token = process.env.TELEGRAM_BOT_TOKEN || settings.telegramBotToken || '';
   if (!token) {
-    return { success: false, error: 'Telegram bot token is not configured in settings or environment' };
+    return { success: false, error: 'Telegram bot token is not configured' };
   }
   const chatIds = customChatId
     ? [customChatId]
