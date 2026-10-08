@@ -6,7 +6,14 @@ import type {
   AssignmentProblem,
   AssignmentWithProgress,
   StudentAssignmentProgress,
+  AppSettings,
+  BrandTheme,
+  LeaderboardMetric,
+  DensityMode,
+  PotdTarget,
 } from '@cf-hub/types';
+
+export type { AppSettings, BrandTheme, LeaderboardMetric, DensityMode, PotdTarget };
 
 export interface ClassroomData {
   id: string;
@@ -106,22 +113,6 @@ const INITIAL_STUDENTS: StudentData[] = [
   },
 ];
 
-export interface AppSettings {
-  teacherName: string;
-  teacherHandle: string;
-  teacherTitle?: string;
-  acmpId?: string;
-  telegramBotToken?: string;
-  telegramAdminIds?: string;
-  contestAlertEnabled: boolean;
-  contestAlertMinutesBefore: number;
-  ratingDigestEnabled: boolean;
-  pollIntervalMinutes: number;
-  cfApiKey?: string;
-  cfApiSecret?: string;
-  lastNotifiedContestIds?: (string | number)[];
-}
-
 export const DEFAULT_SETTINGS: AppSettings = {
   teacherName: 'Abubakr Juraev',
   teacherHandle: 'AbubakrJ',
@@ -136,6 +127,29 @@ export const DEFAULT_SETTINGS: AppSettings = {
   cfApiKey: process.env.CODEFORCES_API_KEY || '',
   cfApiSecret: process.env.CODEFORCES_API_SECRET || '',
   lastNotifiedContestIds: [],
+
+  // White-label & Academy Branding
+  academyName: 'Codeforces Classroom Hub',
+  academyTagline: 'Algorithms & Competitive Programming 2026',
+  academyLogoText: 'CF',
+  brandTheme: 'blue',
+
+  // Leaderboard & Competition Customization
+  leaderboardRankingMetric: 'rating',
+  showUnratedInLeaderboard: true,
+  minRatingFilter: 0,
+
+  // Telegram Bot Customization
+  telegramWelcomeMessage: "Welcome to Coach Abubakr's Algorithms classroom! Solve problems, track ratings, and compete live.",
+  potdRatingTarget: 'all',
+
+  // Report Card & Certification
+  reportCardIssuer: 'Lead Algorithms & CP Coach',
+  reportCardAccreditation: 'Classroom Hub Verified Authenticity',
+  reportCardShowSignature: true,
+
+  // UI & Display Preferences
+  densityMode: 'comfortable',
 };
 
 export interface RegistrationSession {

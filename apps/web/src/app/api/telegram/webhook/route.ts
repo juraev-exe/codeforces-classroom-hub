@@ -230,22 +230,46 @@ async function sendClassOverviewMsg(chatId: number | string) {
 }
 
 async function sendPotdMsg(chatId: number | string) {
-  const POTD_LIST = [
-    { contestId: 706, index: 'B', name: 'Interesting drink', rating: 1100, tags: ['binary search', 'dp', 'sortings'] },
+  const settings = serverStore.getSettings();
+  const target = settings.potdRatingTarget || 'all';
+
+  const ALL_POTD = [
+    // 800 - 1200
     { contestId: 467, index: 'A', name: 'George and Accommodation', rating: 800, tags: ['implementation'] },
-    { contestId: 158, index: 'B', name: 'Taxi', rating: 1100, tags: ['greedy', 'special problem'] },
     { contestId: 580, index: 'A', name: 'Kefa and First Steps', rating: 900, tags: ['dp', 'implementation'] },
-    { contestId: 455, index: 'A', name: 'Boredom', rating: 1500, tags: ['dp'] },
+    { contestId: 706, index: 'B', name: 'Interesting drink', rating: 1100, tags: ['binary search', 'dp', 'sortings'] },
+    { contestId: 158, index: 'B', name: 'Taxi', rating: 1100, tags: ['greedy', 'special problem'] },
     { contestId: 1352, index: 'C', name: 'K-th Not Divisible by n', rating: 1200, tags: ['binary search', 'math'] },
+    // 1200 - 1600
     { contestId: 189, index: 'A', name: 'Cut Ribbon', rating: 1300, tags: ['dp'] },
+    { contestId: 455, index: 'A', name: 'Boredom', rating: 1500, tags: ['dp'] },
+    { contestId: 1360, index: 'E', name: 'Polygon', rating: 1300, tags: ['greedy', 'implementation'] },
+    { contestId: 479, index: 'C', name: 'Exams', rating: 1400, tags: ['greedy', 'sortings'] },
+    { contestId: 1365, index: 'C', name: 'Rotation Matching', rating: 1400, tags: ['constructive algorithms'] },
+    // 1600 - 2000
+    { contestId: 1365, index: 'D', name: 'Solve The Maze', rating: 1700, tags: ['dfs and similar', 'graphs'] },
+    { contestId: 1389, index: 'B', name: 'Array Walk', rating: 1600, tags: ['dp', 'greedy'] },
+    { contestId: 1195, index: 'D1', name: 'Submarine in the Rybinsk Sea (easy)', rating: 1600, tags: ['combinatorics', 'math'] },
+    { contestId: 1354, index: 'C2', name: 'Not So Simple Polygon Embedding', rating: 1800, tags: ['geometry', 'math'] },
+    { contestId: 1622, index: 'C', name: 'Set or Decrease', rating: 1600, tags: ['binary search', 'greedy'] },
   ];
 
+  let filtered = ALL_POTD;
+  if (target === '800-1200') {
+    filtered = ALL_POTD.filter((p) => p.rating >= 800 && p.rating <= 1200);
+  } else if (target === '1200-1600') {
+    filtered = ALL_POTD.filter((p) => p.rating > 1200 && p.rating <= 1600);
+  } else if (target === '1600-2000') {
+    filtered = ALL_POTD.filter((p) => p.rating > 1600);
+  }
+
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  const p = POTD_LIST[dayOfYear % POTD_LIST.length];
+  const p = filtered[dayOfYear % filtered.length];
   const url = `https://codeforces.com/contest/${p.contestId}/problem/${p.index}`;
 
   const msg =
-    `💡 *Daily Algorithmic Problem of the Day (POTD)*\n\n` +
+    `💡 *Daily Problem of the Day (POTD)*\n` +
+    `🏫 _${settings.academyName || 'Codeforces Classroom Hub'}_\n\n` +
     `🎯 *${p.index}. ${p.name}* (Contest #${p.contestId})\n` +
     `★ *Difficulty Rating:* \`${p.rating}\`\n` +
     `🏷️ *Topic Tags:* ${p.tags.map((t) => `\`${t}\``).join(', ')}\n\n` +
@@ -918,10 +942,10 @@ export async function POST(req: Request) {
 
         const teacherGreeting =
 `👋 *Assalomu alaykum, Coach ${settings.teacherName || 'Abubakr'}!* 👨‍🏫
-*Welcome to your Classroom Command Cockpit*
+*${settings.academyName || 'Codeforces Classroom Hub'} Cockpit*
 
 🌐 *Production Platform:* ${WEB_URL}
-👥 *Classroom:* Algorithms & Competitive Programming 2026
+👥 *Classroom:* ${settings.academyTagline || 'Algorithms & Competitive Programming 2026'}
 📊 *Roster:* *${students.length} students enrolled* (${analytics.activeStudents} active)
 📈 *Class Avg Rating:* *${analytics.averageRating}* (Floor: ${analytics.lowestRating}, Peak: ${analytics.highestRating})
 ⏳ *Next Contest:* *${nextRoundText}*
@@ -969,13 +993,13 @@ _Select an action below or tap Web App to open the dashboard:_`;
 
         const studentGreeting =
 `👋 *Welcome back, ${enrolledStudent.name}!* 🎯
-*Codeforces Classroom Hub*
-_Coach: Abubakr Juraev (@${settings.teacherHandle})_
+*${settings.academyName || 'Codeforces Classroom Hub'}*
+_Coach: ${settings.teacherName || 'Abubakr Juraev'} (@${settings.teacherHandle})_
 
 🌐 *Production Platform:* ${WEB_URL}
 ⭐ *Your Current Rating:* *${rating}* (${rank})
 ✅ *Problems Solved:* *${solved}*
-🏫 *Batch:* Algorithms & Competitive Programming 2026
+🏫 *Batch:* ${settings.academyTagline || 'Algorithms & Competitive Programming 2026'}
 
 Tap below to check the leaderboard, practice today's challenge, or view upcoming contests:`;
 
@@ -1005,13 +1029,13 @@ Tap below to check the leaderboard, practice today's challenge, or view upcoming
 
       const guestGreeting =
 `👋 *Welcome, ${firstName}!* 🚀
-*Codeforces Classroom Hub*
-_Mentored by Coach Abubakr Juraev (@${settings.teacherHandle})_
+*${settings.academyName || 'Codeforces Classroom Hub'}*
+_Mentored by Coach ${settings.teacherName || 'Abubakr Juraev'} (@${settings.teacherHandle})_
 
-🌐 *Production Classroom Platform:*
+${settings.telegramWelcomeMessage ? `💬 _${settings.telegramWelcomeMessage}_\n\n` : ''}🌐 *Production Classroom Platform:*
 ${WEB_URL}
 
-🎯 *Class:* Algorithms & Competitive Programming 2026
+🎯 *Class:* ${settings.academyTagline || 'Algorithms & Competitive Programming 2026'}
 💡 Track your Codeforces rating trajectory, submissions, and get automated contest alerts.
 
 *Fast 3-Step Enrollment:*

@@ -371,3 +371,35 @@ export interface AssignmentWithProgress extends Assignment {
     studentProgress: StudentAssignmentProgress[];
     completionRate: number;
 }
+export type BrandTheme = 'blue' | 'purple' | 'emerald' | 'amber' | 'rose' | 'cyan';
+export type LeaderboardMetric = 'rating' | 'solved' | 'contests';
+export type DensityMode = 'comfortable' | 'compact';
+export type PotdTarget = 'all' | '800-1200' | '1200-1600' | '1600-2000';
+export interface AppSettings {
+    teacherName: string;
+    teacherHandle: string;
+    teacherTitle?: string;
+    acmpId?: string;
+    telegramBotToken?: string;
+    telegramAdminIds?: string;
+    contestAlertEnabled: boolean;
+    contestAlertMinutesBefore: number;
+    ratingDigestEnabled: boolean;
+    pollIntervalMinutes: number;
+    cfApiKey?: string;
+    cfApiSecret?: string;
+    lastNotifiedContestIds?: (string | number)[];
+    academyName?: string;
+    academyTagline?: string;
+    academyLogoText?: string;
+    brandTheme?: BrandTheme;
+    leaderboardRankingMetric?: LeaderboardMetric;
+    showUnratedInLeaderboard?: boolean;
+    minRatingFilter?: number;
+    telegramWelcomeMessage?: string;
+    potdRatingTarget?: PotdTarget;
+    reportCardIssuer?: string;
+    reportCardAccreditation?: string;
+    reportCardShowSignature?: boolean;
+    densityMode?: DensityMode;
+}

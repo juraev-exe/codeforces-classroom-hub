@@ -40,6 +40,7 @@ export default function StudentDetailPage() {
   const id = params.id as string;
 
   const [data, setData] = useState<StudentDetailResponse | null>(null);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,8 +50,14 @@ export default function StudentDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetchApi<StudentDetailResponse>(`/api/students/${id}`);
+      const [res, settingsData] = await Promise.all([
+        fetchApi<StudentDetailResponse>(`/api/students/${id}`),
+        fetch('/api/settings').then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ]);
       setData(res);
+      if (settingsData?.settings) {
+        setSettings(settingsData.settings);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load student details');
     } finally {
@@ -411,9 +418,15 @@ export default function StudentDetailPage() {
       <div className="border-b-2 border-black pb-4 mb-6 flex justify-between items-start">
         <div>
           <div className="text-[10px] uppercase tracking-widest font-bold text-gray-500">Official Certification & Audit</div>
-          <h1 className="text-2xl font-black tracking-tight text-black uppercase">Codeforces Classroom Hub</h1>
-          <p className="text-xs font-semibold text-gray-700">Algorithms & Competitive Programming Academic Batch 2026</p>
-          <p className="text-[11px] text-gray-500">Mentored by Lead Coach Abubakr Juraev (@AbubakrJ)</p>
+          <h1 className="text-2xl font-black tracking-tight text-black uppercase">
+            {settings?.academyName || 'Codeforces Classroom Hub'}
+          </h1>
+          <p className="text-xs font-semibold text-gray-700">
+            {settings?.academyTagline || 'Algorithms & Competitive Programming Academic Batch 2026'}
+          </p>
+          <p className="text-[11px] text-gray-500">
+            Mentored by {settings?.teacherName || 'Lead Coach Abubakr Juraev'} (@{settings?.teacherHandle || 'AbubakrJ'})
+          </p>
         </div>
         <div className="text-right text-xs text-gray-600">
           <p className="font-bold text-black uppercase">Official Student Report</p>
@@ -527,15 +540,19 @@ export default function StudentDetailPage() {
       {/* Sign-off & Coach Endorsement */}
       <div className="border-t-2 border-black pt-4 flex justify-between items-end text-xs">
         <div>
-          <p className="font-bold text-black">ABUBAKR JURAEV</p>
-          <p className="text-gray-600">Lead Algorithms & CP Coach</p>
-          <p className="text-gray-500 font-mono text-[10px]">Codeforces: @AbubakrJ | ACMP.ru: #515125</p>
+          <p className="font-bold text-black uppercase">{settings?.teacherName || 'ABUBAKR JURAEV'}</p>
+          <p className="text-gray-600">{settings?.reportCardIssuer || settings?.teacherTitle || 'Lead Algorithms & CP Coach'}</p>
+          <p className="text-gray-500 font-mono text-[10px]">
+            Codeforces: @{settings?.teacherHandle || 'AbubakrJ'} {settings?.acmpId ? `| ACMP.ru: #${settings.acmpId}` : ''}
+          </p>
         </div>
-        <div className="text-right space-y-1">
-          <div className="w-48 border-b border-black mb-1"></div>
-          <p className="text-[10px] text-gray-500">Instructor Endorsement Signature</p>
-          <p className="text-[9px] text-gray-400">Classroom Hub Verified Authenticity</p>
-        </div>
+        {settings?.reportCardShowSignature !== false && (
+          <div className="text-right space-y-1">
+            <div className="w-48 border-b border-black mb-1"></div>
+            <p className="text-[10px] text-gray-500">Instructor Endorsement Signature</p>
+            <p className="text-[9px] text-gray-400 font-semibold">{settings?.reportCardAccreditation || 'Classroom Hub Verified Authenticity'}</p>
+          </div>
+        )}
       </div>
     </div>
   </>

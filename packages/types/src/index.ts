@@ -442,3 +442,52 @@ export interface AssignmentWithProgress extends Assignment {
   studentProgress: StudentAssignmentProgress[];
   completionRate: number; // percentage
 }
+
+// ==========================================
+// Platform Customization & Settings Types
+// ==========================================
+
+export type BrandTheme = 'blue' | 'purple' | 'emerald' | 'amber' | 'rose' | 'cyan';
+export type LeaderboardMetric = 'rating' | 'solved' | 'contests';
+export type DensityMode = 'comfortable' | 'compact';
+export type PotdTarget = 'all' | '800-1200' | '1200-1600' | '1600-2000';
+
+export interface AppSettings {
+  teacherName: string;
+  teacherHandle: string;
+  teacherTitle?: string;
+  acmpId?: string;
+  telegramBotToken?: string;
+  telegramAdminIds?: string;
+  contestAlertEnabled: boolean;
+  contestAlertMinutesBefore: number;
+  ratingDigestEnabled: boolean;
+  pollIntervalMinutes: number;
+  cfApiKey?: string;
+  cfApiSecret?: string;
+  lastNotifiedContestIds?: (string | number)[];
+
+  // White-label & Academy Branding
+  academyName?: string;
+  academyTagline?: string;
+  academyLogoText?: string;
+  brandTheme?: BrandTheme;
+
+  // Leaderboard & Competition Customization
+  leaderboardRankingMetric?: LeaderboardMetric;
+  showUnratedInLeaderboard?: boolean;
+  minRatingFilter?: number;
+
+  // Telegram Bot Customization
+  telegramWelcomeMessage?: string;
+  potdRatingTarget?: PotdTarget;
+
+  // Report Card & Certification
+  reportCardIssuer?: string;
+  reportCardAccreditation?: string;
+  reportCardShowSignature?: boolean;
+
+  // UI & Display Preferences
+  densityMode?: DensityMode;
+}
+
