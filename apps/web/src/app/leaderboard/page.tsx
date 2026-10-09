@@ -23,6 +23,7 @@ import {
   Eye,
   EyeOff,
   SlidersHorizontal,
+  Download,
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import { getRankColor, getRankBadgeClass } from '@/lib/cf-utils';
@@ -118,6 +119,31 @@ function LeaderboardContent() {
       rank: idx + 1,
     }));
   }, [leaderboard, metric, includeUnrated, minRatingFilter]);
+
+  function handleExportCSV() {
+    if (rankedLeaderboard.length === 0) return;
+    const headers = ['Rank', 'Name', 'Handle', 'Class', 'Rating', 'Rank Tier', 'Solved', 'Contests', 'Delta'];
+    const rows = rankedLeaderboard.map((item) => [
+      item.rank,
+      `"${item.name.replace(/"/g, '""')}"`,
+      item.handle,
+      `"${item.className.replace(/"/g, '""')}"`,
+      item.rating || 0,
+      item.rankTitle,
+      item.solvedCount,
+      item.contestCount,
+      item.recentRatingChange || 0,
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `leaderboard_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
 
   const top3 = rankedLeaderboard.slice(0, 3);
 
@@ -215,7 +241,17 @@ function LeaderboardContent() {
               title="Toggle density"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400" />
-              <span>{density === 'compact' ? 'Compact View' : 'Comfortable'}</span>
+              <span>{density === 'compact' ? 'Compact' : 'Comfortable'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 border border-amber-500/30 text-amber-300 transition flex items-center gap-1.5 shadow-sm shadow-amber-500/10"
+              title="Download Leaderboard as CSV spreadsheet"
+            >
+              <Download className="w-3.5 h-3.5 text-amber-400" />
+              <span>Export CSV</span>
             </button>
           </div>
         </div>
