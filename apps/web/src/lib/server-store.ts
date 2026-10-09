@@ -1658,6 +1658,229 @@ export const serverStore = {
     return updated;
   },
 
+  isDemoActive(): boolean {
+    return memoryStore.students.some((s) => s.id.startsWith('demo-student-'));
+  },
+
+  loadDemoRoster(): { success: boolean; studentCount: number; message: string } {
+    const backupFile = STORAGE_FILE.replace('.json', '.real_backup.json');
+    if (!fs.existsSync(backupFile)) {
+      try {
+        fs.writeFileSync(backupFile, JSON.stringify(memoryStore, null, 2), 'utf-8');
+      } catch (e) {
+        console.warn('Failed to snapshot backup before demo roster load:', e);
+      }
+    }
+
+    const DEMO_CLASSES: ClassroomData[] = [
+      {
+        id: 'class-demo-olympiad-2026',
+        name: 'Olympiad Informatics Elite 2026',
+        description: 'Elite competitive programming & algorithmic batch preparing for IOI, ICPC, and National Olympiads.',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        studentCount: 6,
+      },
+    ];
+
+    const DEMO_STUDENTS: StudentData[] = [
+      {
+        id: 'demo-student-1',
+        name: 'Kamronbek Shavkatov',
+        codeforcesHandle: 'kamron_cp',
+        classId: 'class-demo-olympiad-2026',
+        className: 'Olympiad Informatics Elite 2026',
+        group: 'Senior IOI Squad',
+        age: 18,
+        active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        stats: {
+          id: 'stats-demo-1',
+          studentId: 'demo-student-1',
+          rating: 1942,
+          rank: 'candidate master',
+          maxRating: 1978,
+          maxRank: 'candidate master',
+          solvedCount: 782,
+          contestCount: 28,
+          avatar: 'https://userpic.codeforces.org/no-avatar.jpg',
+          lastSyncedAt: new Date().toISOString(),
+        },
+        submissions: [
+          { id: 'sub-d1', problemId: '1941E', problemName: 'Rudolf and k Bridges', verdict: 'OK', problemRating: 1700, submittedAt: new Date(Date.now() - 3600000).toISOString() },
+          { id: 'sub-d2', problemId: '1873G', problemName: 'ABBC or BACB', verdict: 'OK', problemRating: 1500, submittedAt: new Date(Date.now() - 86400000).toISOString() },
+        ],
+        contestParticipations: [],
+      },
+      {
+        id: 'demo-student-2',
+        name: 'Diyorbek Rustamov',
+        codeforcesHandle: 'diyor_algo',
+        classId: 'class-demo-olympiad-2026',
+        className: 'Olympiad Informatics Elite 2026',
+        group: 'Algorithms Div. 1/2',
+        age: 17,
+        active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        stats: {
+          id: 'stats-demo-2',
+          studentId: 'demo-student-2',
+          rating: 1685,
+          rank: 'expert',
+          maxRating: 1720,
+          maxRank: 'expert',
+          solvedCount: 512,
+          contestCount: 19,
+          avatar: 'https://userpic.codeforces.org/no-avatar.jpg',
+          lastSyncedAt: new Date().toISOString(),
+        },
+        submissions: [
+          { id: 'sub-d3', problemId: '1850F', problemName: 'We Were Both Children', verdict: 'OK', problemRating: 1300, submittedAt: new Date(Date.now() - 7200000).toISOString() },
+        ],
+        contestParticipations: [],
+      },
+      {
+        id: 'demo-student-3',
+        name: 'Malika Zokirova',
+        codeforcesHandle: 'malika_coder',
+        classId: 'class-demo-olympiad-2026',
+        className: 'Olympiad Informatics Elite 2026',
+        group: 'Specialist Cohort',
+        age: 16,
+        active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        stats: {
+          id: 'stats-demo-3',
+          studentId: 'demo-student-3',
+          rating: 1430,
+          rank: 'specialist',
+          maxRating: 1455,
+          maxRank: 'specialist',
+          solvedCount: 345,
+          contestCount: 14,
+          avatar: 'https://userpic.codeforces.org/no-avatar.jpg',
+          lastSyncedAt: new Date().toISOString(),
+        },
+        submissions: [
+          { id: 'sub-d4', problemId: '1846C', problemName: 'Rudolf and the Another Competition', verdict: 'OK', problemRating: 1200, submittedAt: new Date(Date.now() - 14400000).toISOString() },
+        ],
+        contestParticipations: [],
+      },
+      {
+        id: 'demo-student-4',
+        name: 'Javohir Aliev',
+        codeforcesHandle: 'javohir_dev',
+        classId: 'class-demo-olympiad-2026',
+        className: 'Olympiad Informatics Elite 2026',
+        group: 'Pupil Foundations',
+        age: 15,
+        active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        stats: {
+          id: 'stats-demo-4',
+          studentId: 'demo-student-4',
+          rating: 1240,
+          rank: 'pupil',
+          maxRating: 1290,
+          maxRank: 'pupil',
+          solvedCount: 215,
+          contestCount: 8,
+          avatar: 'https://userpic.codeforces.org/no-avatar.jpg',
+          lastSyncedAt: new Date().toISOString(),
+        },
+        submissions: [],
+        contestParticipations: [],
+      },
+      {
+        id: 'demo-student-5',
+        name: 'Saloh Kadirov',
+        codeforcesHandle: '__SALAH__',
+        classId: 'class-demo-olympiad-2026',
+        className: 'Olympiad Informatics Elite 2026',
+        group: 'Junior Cadets',
+        age: 16,
+        active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        stats: {
+          id: 'stats-demo-5',
+          studentId: 'demo-student-5',
+          rating: 988,
+          rank: 'newbie',
+          maxRating: 988,
+          maxRank: 'newbie',
+          solvedCount: 418,
+          contestCount: 20,
+          avatar: 'https://userpic.codeforces.org/5373147/title/7d3aa572cf98e2c3.jpg',
+          lastSyncedAt: new Date().toISOString(),
+        },
+        submissions: [],
+        contestParticipations: [],
+      },
+      {
+        id: 'demo-student-6',
+        name: 'Azizbek Karimov',
+        codeforcesHandle: 'azizbek_k',
+        classId: 'class-demo-olympiad-2026',
+        className: 'Olympiad Informatics Elite 2026',
+        group: 'Rookies',
+        age: 14,
+        active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        stats: {
+          id: 'stats-demo-6',
+          studentId: 'demo-student-6',
+          rating: 0,
+          rank: 'unrated',
+          maxRating: 0,
+          maxRank: 'unrated',
+          solvedCount: 42,
+          contestCount: 0,
+          avatar: 'https://userpic.codeforces.org/no-avatar.jpg',
+          lastSyncedAt: new Date().toISOString(),
+        },
+        submissions: [],
+        contestParticipations: [],
+      },
+    ];
+
+    memoryStore.classes = DEMO_CLASSES;
+    memoryStore.students = DEMO_STUDENTS;
+    saveStore(memoryStore);
+    return { success: true, studentCount: DEMO_STUDENTS.length, message: 'Sample Olympiad demo cohort loaded successfully.' };
+  },
+
+  restoreRealRoster(): { success: boolean; studentCount: number; message: string } {
+    const backupFile = STORAGE_FILE.replace('.json', '.real_backup.json');
+    if (fs.existsSync(backupFile)) {
+      try {
+        const raw = fs.readFileSync(backupFile, 'utf-8');
+        const restored = JSON.parse(raw);
+        if (restored && Array.isArray(restored.students)) {
+          memoryStore.classes = restored.classes || INITIAL_CLASSES;
+          memoryStore.students = restored.students;
+          if (restored.assignments) memoryStore.assignments = restored.assignments;
+          saveStore(memoryStore);
+          return { success: true, studentCount: memoryStore.students.length, message: 'Authentic classroom roster restored successfully.' };
+        }
+      } catch (e) {
+        console.warn('Failed to restore real roster from backup:', e);
+      }
+    }
+
+    memoryStore.students = memoryStore.students.filter((s) => !s.id.startsWith('demo-student-'));
+    if (memoryStore.students.length === 0) {
+      memoryStore.students = INITIAL_STUDENTS;
+    }
+    saveStore(memoryStore);
+    return { success: true, studentCount: memoryStore.students.length, message: 'Restored real students.' };
+  },
+
   getStorageHealth() {
     let fileSize = 0;
     try {

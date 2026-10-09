@@ -26,14 +26,39 @@ import {
   X,
   Mail,
   Building,
+  CreditCard,
+  Wallet,
 } from 'lucide-react';
+
+type Currency = 'USD' | 'UZS' | 'EUR';
+type PaymentMethod = 'card' | 'uzum_payme' | 'telegram';
+
+const PRICING = {
+  starter: {
+    USD: { monthly: '$29', annual: '$24' },
+    UZS: { monthly: "370,000 so'm", annual: "299,000 so'm" },
+    EUR: { monthly: '€27', annual: '€22' },
+  },
+  pro: {
+    USD: { monthly: '$79', annual: '$64' },
+    UZS: { monthly: "990,000 so'm", annual: "790,000 so'm" },
+    EUR: { monthly: '€74', annual: '€59' },
+  },
+  enterprise: {
+    USD: { monthly: '$199', annual: '$159' },
+    UZS: { monthly: "2,490,000 so'm", annual: "1,990,000 so'm" },
+    EUR: { monthly: '€185', annual: '€149' },
+  },
+};
 
 export default function ShowcasePage() {
   const [annualBilling, setAnnualBilling] = useState(true);
+  const [currency, setCurrency] = useState<Currency>('USD');
 
   // Inquiry / Demo Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedTier, setSelectedTier] = useState('Academy Pro ($79/mo)');
+  const [selectedTier, setSelectedTier] = useState('Academy Pro');
+  const [paymentPreference, setPaymentPreference] = useState<PaymentMethod>('card');
   const [academyName, setAcademyName] = useState('');
   const [contactName, setContactName] = useState('');
   const [emailOrTelegram, setEmailOrTelegram] = useState('');
@@ -60,6 +85,13 @@ export default function ShowcasePage() {
     try {
       setSubmitting(true);
       setStatusError(null);
+      const paymentLabel =
+        paymentPreference === 'card'
+          ? 'Card / Stripe / International'
+          : paymentPreference === 'uzum_payme'
+          ? 'Payme / Click / Uzum Bank (UZS)'
+          : 'Telegram Direct Invoice';
+
       const res = await fetch('/api/inquiry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -69,6 +101,9 @@ export default function ShowcasePage() {
           emailOrTelegram: emailOrTelegram.trim(),
           studentCount,
           tier: selectedTier,
+          billingCycle: annualBilling ? 'Annual (Save 20%)' : 'Monthly',
+          currency,
+          paymentPreference: paymentLabel,
           notes: notes.trim() || undefined,
         }),
       });
@@ -244,25 +279,61 @@ export default function ShowcasePage() {
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400">Equip your coaching team with high-impact software.</p>
 
-          {/* Billing Switch */}
-          <div className="inline-flex items-center gap-2.5 p-1 rounded-full bg-white/[0.04] border border-white/10 mt-3 text-xs">
-            <button
-              onClick={() => setAnnualBilling(false)}
-              className={`px-3.5 py-1.5 rounded-full font-semibold transition ${
-                !annualBilling ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setAnnualBilling(true)}
-              className={`px-3.5 py-1.5 rounded-full font-semibold transition flex items-center gap-1.5 ${
-                annualBilling ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <span>Annual</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/30 text-emerald-300 font-bold">Save 20%</span>
-            </button>
+          {/* Billing & Currency Controls */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-3">
+            {/* Billing Switch */}
+            <div className="inline-flex items-center gap-2 p-1 rounded-full bg-white/[0.04] border border-white/10 text-xs">
+              <button
+                type="button"
+                onClick={() => setAnnualBilling(false)}
+                className={`px-3.5 py-1.5 rounded-full font-semibold transition ${
+                  !annualBilling ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setAnnualBilling(true)}
+                className={`px-3.5 py-1.5 rounded-full font-semibold transition flex items-center gap-1.5 ${
+                  annualBilling ? 'bg-blue-600 text-white' : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <span>Annual</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/30 text-emerald-300 font-bold">Save 20%</span>
+              </button>
+            </div>
+
+            {/* Currency Selector */}
+            <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/10 text-xs">
+              <button
+                type="button"
+                onClick={() => setCurrency('USD')}
+                className={`px-3 py-1.5 rounded-full font-semibold transition ${
+                  currency === 'USD' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                USD ($)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrency('UZS')}
+                className={`px-3 py-1.5 rounded-full font-semibold transition ${
+                  currency === 'UZS' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                UZS (so&apos;m)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrency('EUR')}
+                className={`px-3 py-1.5 rounded-full font-semibold transition ${
+                  currency === 'EUR' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                EUR (€)
+              </button>
+            </div>
           </div>
         </div>
 
@@ -278,7 +349,7 @@ export default function ShowcasePage() {
 
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl sm:text-4xl font-extrabold text-white font-mono">
-                  ${annualBilling ? '24' : '29'}
+                  {PRICING.starter[currency][annualBilling ? 'annual' : 'monthly']}
                 </span>
                 <span className="text-xs text-zinc-400 font-medium">/ month</span>
               </div>
@@ -309,7 +380,7 @@ export default function ShowcasePage() {
 
             <button
               type="button"
-              onClick={() => openDemoModal('Coach ($29/mo)')}
+              onClick={() => openDemoModal(`Starter (${PRICING.starter[currency][annualBilling ? 'annual' : 'monthly']}/mo)`)}
               className="w-full py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-white font-semibold text-xs text-center transition block active:scale-[0.98]"
             >
               Start Coach Pilot
@@ -331,7 +402,7 @@ export default function ShowcasePage() {
 
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl sm:text-4xl font-extrabold text-white font-mono">
-                  ${annualBilling ? '64' : '79'}
+                  {PRICING.pro[currency][annualBilling ? 'annual' : 'monthly']}
                 </span>
                 <span className="text-xs text-zinc-400 font-medium">/ month</span>
               </div>
@@ -366,7 +437,7 @@ export default function ShowcasePage() {
 
             <button
               type="button"
-              onClick={() => openDemoModal('Academy Pro ($79/mo)')}
+              onClick={() => openDemoModal(`Academy Pro (${PRICING.pro[currency][annualBilling ? 'annual' : 'monthly']}/mo)`)}
               className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs text-center shadow-lg shadow-blue-600/30 transition block active:scale-[0.98]"
             >
               Start 14-Day Free Pilot
@@ -384,7 +455,7 @@ export default function ShowcasePage() {
 
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl sm:text-4xl font-extrabold text-white font-mono">
-                  ${annualBilling ? '159' : '199'}
+                  {PRICING.enterprise[currency][annualBilling ? 'annual' : 'monthly']}
                 </span>
                 <span className="text-xs text-zinc-400 font-medium">/ month</span>
               </div>
@@ -415,7 +486,7 @@ export default function ShowcasePage() {
 
             <button
               type="button"
-              onClick={() => openDemoModal('Enterprise ($199/mo)')}
+              onClick={() => openDemoModal(`Enterprise (${PRICING.enterprise[currency][annualBilling ? 'annual' : 'monthly']}/mo)`)}
               className="w-full py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-white font-semibold text-xs text-center transition block active:scale-[0.98]"
             >
               Contact Enterprise Sales
@@ -507,9 +578,15 @@ export default function ShowcasePage() {
             ) : (
               <form onSubmit={handleInquirySubmit} className="space-y-4">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
                       {selectedTier}
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      {annualBilling ? 'Annual Billing (-20%)' : 'Monthly Billing'}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/15">
+                      {currency}
                     </span>
                   </div>
                   <h3 className="text-xl font-bold text-white tracking-tight">
@@ -576,6 +653,60 @@ export default function ShowcasePage() {
                       <option value="60 - 150 Students" className="bg-zinc-900">60 - 150 Students</option>
                       <option value="150+ Students (Enterprise)" className="bg-zinc-900">150+ Students (Enterprise Custom)</option>
                     </select>
+                  </div>
+
+                  {/* Payment Preference Selector */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-zinc-300">Preferred Billing & Payment Method</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentPreference('card')}
+                        className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2 ${
+                          paymentPreference === 'card'
+                            ? 'bg-blue-600/20 border-blue-500 text-white shadow-sm'
+                            : 'bg-black/40 border-white/10 text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        <CreditCard className="w-4 h-4 text-blue-400 shrink-0" />
+                        <div className="leading-tight">
+                          <div className="text-[11px] font-bold">Card / Stripe</div>
+                          <div className="text-[9px] text-zinc-500">Visa, Mastercard</div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPaymentPreference('uzum_payme')}
+                        className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2 ${
+                          paymentPreference === 'uzum_payme'
+                            ? 'bg-purple-600/20 border-purple-500 text-white shadow-sm'
+                            : 'bg-black/40 border-white/10 text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        <Wallet className="w-4 h-4 text-purple-400 shrink-0" />
+                        <div className="leading-tight">
+                          <div className="text-[11px] font-bold">Payme / Uzum</div>
+                          <div className="text-[9px] text-zinc-500">Click & UZS Bank</div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPaymentPreference('telegram')}
+                        className={`p-2.5 rounded-xl border text-left transition flex items-center gap-2 ${
+                          paymentPreference === 'telegram'
+                            ? 'bg-emerald-600/20 border-emerald-500 text-white shadow-sm'
+                            : 'bg-black/40 border-white/10 text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        <Bot className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <div className="leading-tight">
+                          <div className="text-[11px] font-bold">Telegram Invoice</div>
+                          <div className="text-[9px] text-zinc-500">Direct Bot Invoice</div>
+                        </div>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-1">

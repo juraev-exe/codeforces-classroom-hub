@@ -29,6 +29,10 @@ import {
   Code2,
   Check,
   Zap,
+  Copy,
+  RotateCcw,
+  Cloud,
+  CheckCheck,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAuthHeaders } from '@/lib/api';
@@ -162,6 +166,13 @@ export default function SettingsPage() {
   } | null>(null);
   const [syncingWebhook, setSyncingWebhook] = useState(false);
 
+  // Demo pitch mode state
+  const [isDemoActive, setIsDemoActive] = useState(false);
+  const [togglingDemo, setTogglingDemo] = useState(false);
+
+  // Vercel deployment checklist state
+  const [copiedEnv, setCopiedEnv] = useState(false);
+
   // Security masks
   const [showTelegramToken, setShowTelegramToken] = useState(false);
   const [showCfSecret, setShowCfSecret] = useState(false);
@@ -182,7 +193,66 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchSettings();
     fetchWebhookInfo();
+    fetchDemoStatus();
   }, []);
+
+  async function fetchDemoStatus() {
+    try {
+      const res = await fetch('/api/demo/roster', { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setIsDemoActive(!!data.isDemoActive);
+      }
+    } catch {}
+  }
+
+  async function handleToggleDemo(action: 'load' | 'restore') {
+    try {
+      setTogglingDemo(true);
+      const res = await fetch('/api/demo/roster', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsDemoActive(action === 'load');
+        triggerStatus('success', data.message || (action === 'load' ? 'Demo Olympiad cohort loaded! 🏆' : 'Authentic student roster restored! ✅'));
+        fetchSettings();
+      } else {
+        triggerStatus('error', data.error || 'Failed to update demo mode');
+      }
+    } catch {
+      triggerStatus('error', 'Network error updating demo mode');
+    } finally {
+      setTogglingDemo(false);
+    }
+  }
+
+  function handleCopyVercelEnv() {
+    const envTemplate = `# Codeforces Classroom Hub - Production Environment Variables
+# Copy directly into Vercel Project Settings -> Environment Variables
+
+NEXT_PUBLIC_APP_URL=https://your-academy.vercel.app
+NEXT_PUBLIC_ADMIN_PIN=2026
+
+# Telegram Bot Automation (from @BotFather)
+TELEGRAM_BOT_TOKEN=${settings.telegramBotToken || 'YOUR_BOT_TOKEN_FROM_BOTFATHER'}
+TELEGRAM_ADMIN_IDS=${settings.telegramAdminIds || 'YOUR_TELEGRAM_USER_ID'}
+
+# Optional Codeforces Official API Credentials
+CODEFORCES_API_KEY=${settings.cfApiKey || ''}
+CODEFORCES_API_SECRET=${settings.cfApiSecret || ''}
+
+# Optional Supabase Database Mirror (for 100% persistent cloud SQL storage)
+NEXT_PUBLIC_SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+`;
+    navigator.clipboard.writeText(envTemplate);
+    setCopiedEnv(true);
+    triggerStatus('success', 'Copied Vercel Environment Variables template to clipboard! 📋');
+    setTimeout(() => setCopiedEnv(false), 3000);
+  }
 
   async function fetchWebhookInfo() {
     try {
@@ -391,11 +461,17 @@ export default function SettingsPage() {
 
         <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide uppercase border ${activeTheme.badge}`}>
                 White-label & Customization
               </span>
               <span className="text-xs text-zinc-400">Classroom Hub Commercial</span>
+              {isDemoActive && (
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  <span>Pitch Mode Active (Olympiad Cohort)</span>
+                </span>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-3">
               <Settings className={`w-7 h-7 ${activeTheme.textColor}`} />
@@ -1234,6 +1310,170 @@ export default function SettingsPage() {
                     {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     <span>Save All Settings</span>
                   </button>
+                </div>
+              </div>
+
+              {/* ========================================================================= */}
+              {/* SECTION 6B: COMMERCIAL DEMO PITCH MODE                                   */}
+              {/* ========================================================================= */}
+              <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/[0.08] shadow-xl space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-bold text-white tracking-tight">Sales Pitch & Demo Mode</h2>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${isDemoActive ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-zinc-800 text-zinc-400'}`}>
+                          {isDemoActive ? 'Active Demo Cohort' : 'Authentic Roster'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-400">Instantly populate a vibrant 6-student Olympiad team across all ranks for client presentations</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isDemoActive ? (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDemo('restore')}
+                        disabled={togglingDemo}
+                        className="px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 font-semibold text-xs active:scale-95 disabled:opacity-50 transition flex items-center gap-2 shadow-sm"
+                      >
+                        {togglingDemo ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                        <span>Restore Authentic Student Roster</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDemo('load')}
+                        disabled={togglingDemo}
+                        className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs active:scale-95 disabled:opacity-50 transition flex items-center gap-2 shadow-lg shadow-amber-600/20"
+                      >
+                        {togglingDemo ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        <span>Load Sample Olympiad Cohort</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-3">
+                  <p className="text-xs text-zinc-300 leading-relaxed">
+                    Presenting to school principals, investors, or academy clients? Instead of showing an empty classroom or exposing private student data, 1-click loads a balanced competitive programming cohort with complete solved problem telemetry:
+                  </p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-1">
+                    <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-center">
+                      <div className="text-[10px] uppercase font-bold text-purple-400">Candidate Master</div>
+                      <div className="text-xs font-mono font-bold text-white mt-0.5">1942</div>
+                      <div className="text-[10px] text-zinc-400 truncate">Sardor U.</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
+                      <div className="text-[10px] uppercase font-bold text-blue-400">Expert</div>
+                      <div className="text-xs font-mono font-bold text-white mt-0.5">1685</div>
+                      <div className="text-[10px] text-zinc-400 truncate">Madina K.</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-center">
+                      <div className="text-[10px] uppercase font-bold text-cyan-400">Specialist</div>
+                      <div className="text-xs font-mono font-bold text-white mt-0.5">1430</div>
+                      <div className="text-[10px] text-zinc-400 truncate">Jasur T.</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                      <div className="text-[10px] uppercase font-bold text-emerald-400">Pupil</div>
+                      <div className="text-xs font-mono font-bold text-white mt-0.5">1240</div>
+                      <div className="text-[10px] text-zinc-400 truncate">Shoxrux B.</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-zinc-500/10 border border-zinc-500/20 text-center">
+                      <div className="text-[10px] uppercase font-bold text-zinc-400">Newbie</div>
+                      <div className="text-xs font-mono font-bold text-white mt-0.5">988</div>
+                      <div className="text-[10px] text-zinc-400 truncate">Dilshod N.</div>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-zinc-700/10 border border-zinc-700/20 text-center">
+                      <div className="text-[10px] uppercase font-bold text-zinc-500">Unrated</div>
+                      <div className="text-xs font-mono font-bold text-zinc-400 mt-0.5">New</div>
+                      <div className="text-[10px] text-zinc-400 truncate">Aziza M.</div>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 pt-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Your genuine classroom roster is backed up safely to <code className="text-zinc-300 font-mono text-[10px] bg-black/40 px-1 py-0.5 rounded">classroom_data.real_backup.json</code> and can be restored at any time.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ========================================================================= */}
+              {/* SECTION 6C: 24/7 CLOUD READINESS & VERCEL CHECKLIST                       */}
+              {/* ========================================================================= */}
+              <div className="glass-panel p-6 sm:p-7 rounded-3xl border border-white/[0.08] shadow-xl space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center border border-cyan-500/20">
+                      <Cloud className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-white tracking-tight">24/7 Cloud Architecture & Vercel Readiness</h2>
+                      <p className="text-xs text-zinc-400">Serverless zero-maintenance deployment checklist with 1-click environment sync</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleCopyVercelEnv}
+                      className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs active:scale-95 transition flex items-center gap-2 shadow-lg shadow-cyan-600/20"
+                    >
+                      {copiedEnv ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedEnv ? 'Copied .env Template!' : 'Copy Vercel Environment Variables'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white">Next.js Edge Runtime</span>
+                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Ready</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      API routes and webhooks run serverlessly with sub-second response times on global CDN edges.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white">Cloud Webhook</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${webhookInfo?.url ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}`}>
+                        {webhookInfo?.url ? 'Connected 24/7' : 'Local Polling'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      Telegram dispatches incoming student commands directly into Vercel even when your laptop is offline.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white">Database Storage</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${health?.supabaseConfigured ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-purple-400 bg-purple-500/10 border-purple-500/20'}`}>
+                        {health?.supabaseConfigured ? 'Supabase Sync OK' : 'Local + Cloud JSON'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      Dual-layer data persistence: automatic JSON fallback with optional instant Supabase PostgreSQL replication.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-black/40 border border-white/10 space-y-2 font-mono text-xs">
+                  <div className="flex items-center justify-between text-zinc-400 text-[11px]">
+                    <span>DEPLOYMENT QUICK-START COMMANDS</span>
+                    <span>Bash / PowerShell</span>
+                  </div>
+                  <pre className="text-blue-300 text-[11px] leading-relaxed overflow-x-auto whitespace-pre p-2 bg-white/[0.02] rounded-xl border border-white/[0.05]">
+                    {`# 1. Login & link project with Vercel\nvercel login && vercel link\n\n# 2. Push production build with configured env vars\nvercel --prod`}
+                  </pre>
                 </div>
               </div>
             </>
